@@ -1,0 +1,22 @@
+html,
+body,
+#app {
+  height: 100%;
+}
+
+:root {
+  --el-color-primary: #ff6d1f;
+  --el-color-primary-light-3: #ff9258;
+  --el-color-primary-light-5: #ffb285;
+  --el-color-primary-light-7: #ffd3b3;
+  --el-color-primary-light-8: #ffe3c9;
+  --el-color-primary-light-9: #fff1e5;
+  --el-color-primary-dark-2: #cc5719;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  background: #f5f6f8;
+  -webkit-font-smoothing: antialiased;
+}

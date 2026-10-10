@@ -3,6 +3,7 @@
 from django.db.models import Sum
 from django.views.decorators.http import require_http_methods
 
+from common.auth import make_platform_token, platform_login_required
 from common.response import fail, ok
 from common.utils import get_json
 from merchant.models import MerchantInfo
@@ -26,6 +27,7 @@ def merchant_to_dict(m):
 
 
 @require_http_methods(['GET'])
+@platform_login_required
 def merchants(request):
     qs = MerchantInfo.objects.all().order_by('-id')
     status = request.GET.get('status')
@@ -42,6 +44,7 @@ def merchants(request):
 
 
 @require_http_methods(['POST', 'PUT'])
+@platform_login_required
 def merchant_audit(request, pk):
     m = MerchantInfo.objects.filter(id=pk).first()
     if not m:
@@ -59,6 +62,7 @@ def merchant_audit(request, pk):
 
 
 @require_http_methods(['GET'])
+@platform_login_required
 def statistics(request):
     revenue = OrderInfo.objects.filter(
         status__in=[20, 30, 40, 50]
@@ -73,6 +77,7 @@ def statistics(request):
 
 
 @require_http_methods(['GET'])
+@platform_login_required
 def orders(request):
     qs = OrderInfo.objects.all().order_by('-id')[:100]
     data = [
@@ -91,6 +96,7 @@ def orders(request):
 
 
 @require_http_methods(['GET'])
+@platform_login_required
 def users(request):
     qs = UserInfo.objects.all().order_by('-id')[:100]
     data = [
@@ -103,3 +109,20 @@ def users(request):
         for u in qs
     ]
     return ok(data)
+
+
+@require_http_methods(['POST'])
+def login(request):
+    """平台运营登录：账号密码，要求 is_staff。"""
+    from django.contrib.auth import authenticate
+
+    data = get_json(request)
+    username = (data.get('username') or '').strip()
+    password = (data.get('password') or '').strip()
+    user = authenticate(username=username, password=password)
+    if user is None or not user.is_staff:
+        return fail('用户名或密码错误，或无运营权限')
+    return ok({
+        'token': make_platform_token(user),
+        'username': user.username,
+    })

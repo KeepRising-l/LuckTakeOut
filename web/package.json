@@ -1,0 +1,19 @@
+{
+  "name": "takeout-web",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:customer": "npm run dev -w @takeout/customer",
+    "dev:merchant": "npm run dev -w @takeout/merchant",
+    "dev:rider": "npm run dev -w @takeout/rider",
+    "dev": "concurrently -n customer,merchant,rider -c blue,green,magenta \"npm run dev:customer\" \"npm run dev:merchant\" \"npm run dev:rider\"",
+    "build": "npm run build -w @takeout/customer && npm run build -w @takeout/merchant && npm run build -w @takeout/rider"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

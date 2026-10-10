@@ -1,4 +1,4 @@
-"""统一响应格式：{code, info, data}，成功 code = '00000'。"""
+"""统一响应格式：ResultAPI {code, info, data}，成功 code = '00000'。"""
 
 from django.http import JsonResponse
 
@@ -18,18 +18,11 @@ def fail(info='请求失败', code='A0400', status=200):
     )
 
 
-# ---- 商户端响应格式：{success, data, message} ----
-
 def ok_m(data=None, message='success'):
-    return JsonResponse(
-        {'success': True, 'data': data, 'message': message},
-        json_dumps_params={'ensure_ascii': False},
-    )
+    """兼容别名：商户端历史视图统一走 ResultAPI。"""
+    return ok(data, info=message)
 
 
 def fail_m(message='操作失败', status=200):
-    return JsonResponse(
-        {'success': False, 'data': None, 'message': message},
-        status=status,
-        json_dumps_params={'ensure_ascii': False},
-    )
+    """兼容别名：商户端历史视图统一走 ResultAPI。"""
+    return fail(message, status=status)

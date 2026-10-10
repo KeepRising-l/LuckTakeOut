@@ -170,3 +170,24 @@ def order_pay(request, pk):
         )
         PaymentRecord.objects.filter(order=o).update(status=20, pay_time=timezone.now())
     return ok(order_to_dict(o))
+
+
+@require_http_methods(['POST'])
+@api_login_required
+def order_cancel(request, pk):
+    """顾客取消本人订单：仅待支付/已支付未接单可取消。"""
+    user_info = UserInfo.objects.filter(auth_user=request.user).first()
+    if not user_info:
+        return fail('用户不存在', status=401)
+    o = OrderInfo.objects.filter(id=pk, user=user_info).first()
+    if not o:
+        return fail('订单不存在')
+    if o.status not in (OrderInfo.STATUS_PENDING_PAY, OrderInfo.STATUS_PAID):
+        return fail('当前订单状态不允许取消')
+    from_status = o.status
+    o.status = OrderInfo.STATUS_CANCELED
+    o.save()
+    OrderStatusLog.objects.create(
+        order=o, from_status=from_status, to_status=o.status, operator_role='customer',
+    )
+    return ok(order_to_dict(o), info='订单已取消')

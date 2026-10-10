@@ -23,7 +23,7 @@ def merchant_to_dict(m):
         'address': m.address or '',
         'categoryId': m.category_id,
         'status': m.status,
-        'open': True,
+        'open': bool(m.is_open),
         'openTime': m.open_time.strftime('%H:%M') if m.open_time else '09:00',
         'closeTime': m.close_time.strftime('%H:%M') if m.close_time else '21:00',
         'createTime': m.create_time.strftime('%Y-%m-%d %H:%M:%S') if m.create_time else '',
@@ -80,6 +80,40 @@ def update_info(request):
 @require_http_methods(['PUT', 'POST'])
 @merchant_login_required
 def update_status(request):
+    """营业状态：{open: true/false} 落库。"""
     data = get_json(request)
-    # 营业状态为演示占位：直接回显
-    return ok_m({'status': data.get('status', 1)})
+    open_value = data.get('open', data.get('status'))
+    if isinstance(open_value, str):
+        open_value = open_value.lower() in ('1', 'true', 'open')
+    if not isinstance(open_value, bool):
+        return fail_m('营业状态格式不正确')
+    request.merchant.is_open = open_value
+    request.merchant.save()
+    return ok_m({'open': request.merchant.is_open}, message='营业状态已更新')
+
+
+@require_http_methods(['POST'])
+@merchant_login_required
+def upload_avatar(request):
+    """商户头像/Logo 上传：multipart 字段 file，存 media/ 并更新 logo。"""
+    import os
+    import uuid
+
+    from django.conf import settings
+    from django.core.files.storage import default_storage
+
+    f = request.FILES.get('file')
+    if not f:
+        return fail_m('请选择图片文件')
+    ext = os.path.splitext(f.name)[1].lower()
+    if ext not in ('.jpg', '.jpeg', '.png', '.webp', '.gif'):
+        return fail_m('仅支持 jpg/png/webp/gif 图片')
+    if f.size > 5 * 1024 * 1024:
+        return fail_m('图片不能超过 5MB')
+
+    name = f'avatar/{uuid.uuid4().hex}{ext}'
+    saved = default_storage.save(name, f)
+    url = f'{settings.MEDIA_URL}{saved}'
+    request.merchant.logo = url
+    request.merchant.save()
+    return ok_m({'logo': url}, message='头像已更新')

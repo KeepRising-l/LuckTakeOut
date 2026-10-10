@@ -78,7 +78,7 @@ def merchant_login_required(view):
             merchant = MerchantInfo.objects.filter(auth_user=auth_user).first()
         if merchant is None:
             return JsonResponse(
-                {'success': False, 'message': '未登录或登录已过期', 'data': None},
+                {'code': 'A0401', 'info': '未登录或登录已过期', 'data': None},
                 status=401,
                 json_dumps_params={'ensure_ascii': False},
             )
@@ -129,6 +129,41 @@ def rider_login_required(view):
             )
         request.user = auth_user
         request.rider = rider
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
+# ---- 平台运营端 Token（独立盐值，要求 is_staff）----
+
+PLATFORM_SALT = 'takeout-platform-token'
+
+
+def make_platform_token(auth_user):
+    return signing.dumps({'uid': auth_user.id}, salt=PLATFORM_SALT)
+
+
+def platform_login_required(view):
+    """要求平台运营登录（is_staff）；未登录/非运营返回 401。"""
+
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        auth = request.META.get('HTTP_AUTHORIZATION', '')
+        auth_user = None
+        if auth.startswith('Bearer '):
+            token = auth[len('Bearer '):].strip()
+            try:
+                payload = signing.loads(token, salt=PLATFORM_SALT, max_age=TOKEN_MAX_AGE)
+                auth_user = User.objects.filter(id=payload.get('uid')).first()
+            except Exception:
+                auth_user = None
+        if auth_user is None or not auth_user.is_staff:
+            return JsonResponse(
+                {'code': 'A0401', 'info': '未登录或无运营权限', 'data': None},
+                status=401,
+                json_dumps_params={'ensure_ascii': False},
+            )
+        request.user = auth_user
         return view(request, *args, **kwargs)
 
     return wrapper

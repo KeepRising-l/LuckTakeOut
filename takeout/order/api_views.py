@@ -1,6 +1,6 @@
 """商户端订单处理与统计接口。"""
 
-from datetime import date
+from datetime import date, timedelta
 
 from django.db.models import Count, Sum
 from django.views.decorators.http import require_http_methods
@@ -9,7 +9,7 @@ from common.auth import merchant_login_required
 from common.response import fail_m, ok_m
 from common.utils import get_json
 
-from .models import OrderInfo, OrderStatusLog
+from .models import OrderInfo, OrderItem, OrderStatusLog
 
 # 内部状态 <-> 商户端状态字符串
 STATUS_TO_M = {
@@ -171,6 +171,59 @@ def stats_order_status(request):
 
 @require_http_methods(['GET'])
 @merchant_login_required
-def stats_stub(request):
-    # 销售 / 营业额趋势 / 热销等：演示占位
-    return ok_m([])
+def stats_sales(request):
+    """近 7 天每日单量。"""
+    merchant = request.merchant
+    days = _last_days(7)
+    rows = (
+        OrderInfo.objects.filter(merchant=merchant, create_time__date__gte=days[0])
+        .values('create_time__date').annotate(count=Count('id'))
+    )
+    by_day = {r['create_time__date']: r['count'] for r in rows}
+    return ok_m([{'date': d.strftime('%m-%d'), 'count': by_day.get(d, 0)} for d in days])
+
+
+@require_http_methods(['GET'])
+@merchant_login_required
+def stats_revenue_trend(request):
+    """近 7 天每日营业额（已支付口径）。"""
+    merchant = request.merchant
+    days = _last_days(7)
+    rows = (
+        OrderInfo.objects.filter(
+            merchant=merchant, status__in=[20, 30, 40, 50], create_time__date__gte=days[0]
+        )
+        .values('create_time__date').annotate(s=Sum('pay_amount'))
+    )
+    by_day = {r['create_time__date']: float(r['s'] or 0) for r in rows}
+    return ok_m([{'date': d.strftime('%m-%d'), 'revenue': round(by_day.get(d, 0), 2)} for d in days])
+
+
+@require_http_methods(['GET'])
+@merchant_login_required
+def stats_top_products(request):
+    """近 30 天销量 Top10。"""
+    start = date.today() - timedelta(days=30)
+    rows = (
+        OrderItem.objects.filter(
+            order__merchant=request.merchant,
+            order__status__in=[20, 30, 40, 50],
+            order__create_time__date__gte=start,
+        )
+        .values('product_name').annotate(count=Sum('quantity'))
+        .order_by('-count')[:10]
+    )
+    return ok_m([{'name': r['product_name'], 'count': r['count']} for r in rows])
+
+
+@require_http_methods(['GET'])
+@merchant_login_required
+def stats_orders(request):
+    """近期订单（供报表页复用）。"""
+    qs = OrderInfo.objects.filter(merchant=request.merchant).order_by('-id')[:20]
+    return ok_m([order_to_dict(o) for o in qs])
+
+
+def _last_days(n):
+    today = date.today()
+    return [today - timedelta(days=i) for i in range(n - 1, -1, -1)]
