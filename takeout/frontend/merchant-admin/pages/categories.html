@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>菜品分类管理 - 商家管理后台</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <style>
+        .categories-container {
+            padding: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .category-card {
+            background: var(--white);
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+            padding: 20px;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+        }
+
+        .category-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .category-info {
+            flex: 1;
+        }
+
+        .category-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 8px 0;
+        }
+
+        .category-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .category-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: var(--success-light);
+            color: var(--success-color);
+        }
+
+        .status-inactive {
+            background: var(--danger-light);
+            color: var(--danger-color);
+        }
+
+        .category-stats {
+            display: flex;
+            justify-content: space-between;
+            margin: 16px 0;
+            padding: 12px;
+            background: var(--bg-light);
+            border-radius: 6px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin: 4px 0 0 0;
+        }
+
+        .category-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--white);
+            color: var(--text-primary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: var(--bg-light);
+        }
+
+        .action-btn.primary {
+            background: var(--primary-color);
+            color: var(--white);
+            border-color: var(--primary-color);
+        }
+
+        .action-btn.primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .action-btn.danger {
+            background: var(--danger-color);
+            color: var(--white);
+            border-color: var(--danger-color);
+        }
+
+        .action-btn.danger:hover {
+            background: var(--danger-dark);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+            background: var(--white);
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        /* 模态框样式 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--white);
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 80px;
+            transition: border-color 0.2s;
+        }
+
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .form-switch {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .switch.active {
+            background: var(--primary-color);
+        }
+
+        .switch-handle {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: var(--white);
+            border-radius: 50%;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .switch.active .switch-handle {
+            transform: translateX(20px);
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .form-error {
+            color: var(--danger-color);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .categories-container {
+                padding: 16px;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+
+            .header-actions {
+                justify-content: stretch;
+            }
+
+            .categories-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .category-stats {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .stat-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .category-actions {
+                justify-content: stretch;
+            }
+
+            .action-btn {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="categories-container">
+        <div class="page-header">
+            <h1 class="page-title">菜品分类管理</h1>
+            <div class="header-actions">
+                <button class="btn btn-outline btn-sm" id="refreshBtn">刷新</button>
+                <button class="btn btn-primary btn-sm" id="addCategoryBtn">添加分类</button>
+            </div>
+        </div>
+
+        <div class="categories-grid" id="categoriesGrid">
+            <!-- 分类卡片将在这里动态生成 -->
+        </div>
+    </div>
+
+    <!-- 添加/编辑分类模态框 -->
+    <div class="modal" id="categoryModal">
+        <div class="modal-content">
+            <div class="loading-overlay" id="modalLoading">
+                <div class="spinner"></div>
+            </div>
+            
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">添加分类</h2>
+                <button class="close-btn" id="closeModalBtn">×</button>
+            </div>
+            
+            <form id="categoryForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label" for="categoryName">分类名称 *</label>
+                        <input type="text" class="form-input" id="categoryName" name="name" required maxlength="20">
+                        <div class="form-error" id="nameError"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="categoryDescription">分类描述</label>
+                        <textarea class="form-textarea" id="categoryDescription" name="description" maxlength="200" placeholder="请输入分类描述（可选）"></textarea>
+                        <div class="form-error" id="descriptionError"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="sortOrder">排序权重</label>
+                        <input type="number" class="form-input" id="sortOrder" name="sortOrder" min="0" max="999" value="0" placeholder="数字越大排序越靠前">
+                        <div class="form-error" id="sortOrderError"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">状态</label>
+                        <div class="form-switch">
+                            <div class="switch active" id="statusSwitch">
+                                <div class="switch-handle"></div>
+                            </div>
+                            <span id="statusText">启用</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" id="cancelBtn">取消</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/utils.js"></script>
+    <script>
+        class CategoryManager {
+            constructor() {
+                this.categories = [];
+                this.currentCategory = null;
+                this.isLoading = false;
+                this.isEditing = false;
+                
+                this.init();
+            }
+
+            async init() {
+                this.bindEvents();
+                await this.loadCategories();
+            }
+
+            bindEvents() {
+                // 添加分类按钮
+                document.getElementById('addCategoryBtn').addEventListener('click', () => {
+                    this.showCategoryModal();
+                });
+
+                // 刷新按钮
+                document.getElementById('refreshBtn').addEventListener('click', () => {
+                    this.loadCategories();
+                });
+
+                // 模态框关闭
+                document.getElementById('closeModalBtn').addEventListener('click', () => {
+                    this.hideCategoryModal();
+                });
+
+                document.getElementById('cancelBtn').addEventListener('click', () => {
+                    this.hideCategoryModal();
+                });
+
+                document.getElementById('categoryModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'categoryModal') {
+                        this.hideCategoryModal();
+                    }
+                });
+
+                // 状态开关
+                document.getElementById('statusSwitch').addEventListener('click', () => {
+                    this.toggleStatus();
+                });
+
+                // 表单提交
+                document.getElementById('categoryForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.saveCategory();
+                });
+
+                // 实时验证
+                document.getElementById('categoryName').addEventListener('input', () => {
+                    this.validateField('name');
+                });
+
+                document.getElementById('categoryDescription').addEventListener('input', () => {
+                    this.validateField('description');
+                });
+
+                document.getElementById('sortOrder').addEventListener('input', () => {
+                    this.validateField('sortOrder');
+                });
+            }
+
+            async loadCategories() {
+                if (this.isLoading) return;
+                
+                try {
+                    this.setLoading(true);
+                    
+                    const response = await ApiService.product.getCategories();
+                    
+                    if (response.success) {
+                        this.categories = response.data || [];
+                        this.renderCategories();
+                    } else {
+                        Message.error(response.message || '加载分类失败');
+                    }
+                } catch (error) {
+                    console.error('加载分类失败:', error);
+                    Message.error('加载分类失败，请刷新页面重试');
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            renderCategories() {
+                const grid = document.getElementById('categoriesGrid');
+                
+                if (this.categories.length === 0) {
+                    grid.innerHTML = `
+                        <div class="empty-state" style="grid-column: 1 / -1;">
+                            <div class="empty-icon">📂</div>
+                            <div>暂无分类</div>
+                            <div style="margin-top: 8px; font-size: 14px;">点击"添加分类"创建第一个菜品分类</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // 按排序权重和创建时间排序
+                const sortedCategories = [...this.categories].sort((a, b) => {
+                    if (a.sortOrder !== b.sortOrder) {
+                        return b.sortOrder - a.sortOrder; // 权重高的在前
+                    }
+                    return new Date(a.createTime) - new Date(b.createTime); // 创建时间早的在前
+                });
+                
+                grid.innerHTML = sortedCategories.map(category => this.renderCategoryCard(category)).join('');
+            }
+
+            renderCategoryCard(category) {
+                const statusConfig = category.status === 'ACTIVE' 
+                    ? { class: 'status-active', text: '启用' }
+                    : { class: 'status-inactive', text: '禁用' };
+                
+                return `
+                    <div class="category-card">
+                        <div class="category-header">
+                            <div class="category-info">
+                                <h3 class="category-name">${category.name}</h3>
+                                <p class="category-description">${category.description || '暂无描述'}</p>
+                            </div>
+                            <span class="category-status ${statusConfig.class}">${statusConfig.text}</span>
+                        </div>
+                        
+                        <div class="category-stats">
+                            <div class="stat-item">
+                                <div class="stat-number">${category.productCount || 0}</div>
+                                <div class="stat-label">商品数量</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${category.sortOrder || 0}</div>
+                                <div class="stat-label">排序权重</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${Utils.formatDate(category.createTime, 'MM-DD')}</div>
+                                <div class="stat-label">创建时间</div>
+                            </div>
+                        </div>
+                        
+                        <div class="category-actions">
+                            <button class="action-btn primary" onclick="categoryManager.editCategory(${category.id})">编辑</button>
+                            <button class="action-btn ${category.status === 'ACTIVE' ? 'danger' : 'primary'}" 
+                                    onclick="categoryManager.toggleCategoryStatus(${category.id})">
+                                ${category.status === 'ACTIVE' ? '禁用' : '启用'}
+                            </button>
+                            <button class="action-btn danger" onclick="categoryManager.deleteCategory(${category.id})">删除</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            showCategoryModal(category = null) {
+                this.currentCategory = category;
+                this.isEditing = !!category;
+                
+                const modal = document.getElementById('categoryModal');
+                const title = document.getElementById('modalTitle');
+                const form = document.getElementById('categoryForm');
+                
+                title.textContent = this.isEditing ? '编辑分类' : '添加分类';
+                
+                if (this.isEditing) {
+                    this.fillForm(category);
+                } else {
+                    this.resetForm();
+                }
+                
+                modal.classList.add('show');
+                document.getElementById('categoryName').focus();
+            }
+
+            hideCategoryModal() {
+                const modal = document.getElementById('categoryModal');
+                modal.classList.remove('show');
+                this.resetForm();
+                this.currentCategory = null;
+                this.isEditing = false;
+            }
+
+            fillForm(category) {
+                document.getElementById('categoryName').value = category.name || '';
+                document.getElementById('categoryDescription').value = category.description || '';
+                document.getElementById('sortOrder').value = category.sortOrder || 0;
+                
+                const statusSwitch = document.getElementById('statusSwitch');
+                const statusText = document.getElementById('statusText');
+                
+                if (category.status === 'ACTIVE') {
+                    statusSwitch.classList.add('active');
+                    statusText.textContent = '启用';
+                } else {
+                    statusSwitch.classList.remove('active');
+                    statusText.textContent = '禁用';
+                }
+            }
+
+            resetForm() {
+                document.getElementById('categoryForm').reset();
+                document.getElementById('sortOrder').value = 0;
+                
+                const statusSwitch = document.getElementById('statusSwitch');
+                const statusText = document.getElementById('statusText');
+                statusSwitch.classList.add('active');
+                statusText.textContent = '启用';
+                
+                this.clearErrors();
+            }
+
+            toggleStatus() {
+                const statusSwitch = document.getElementById('statusSwitch');
+                const statusText = document.getElementById('statusText');
+                
+                if (statusSwitch.classList.contains('active')) {
+                    statusSwitch.classList.remove('active');
+                    statusText.textContent = '禁用';
+                } else {
+                    statusSwitch.classList.add('active');
+                    statusText.textContent = '启用';
+                }
+            }
+
+            validateField(field) {
+                const value = document.getElementById(field === 'name' ? 'categoryName' : 
+                                                   field === 'description' ? 'categoryDescription' : 
+                                                   'sortOrder').value;
+                const errorElement = document.getElementById(field + 'Error');
+                
+                let error = '';
+                
+                switch (field) {
+                    case 'name':
+                        if (!value.trim()) {
+                            error = '分类名称不能为空';
+                        } else if (value.trim().length > 20) {
+                            error = '分类名称不能超过20个字符';
+                        } else if (this.isDuplicateName(value.trim())) {
+                            error = '分类名称已存在';
+                        }
+                        break;
+                    case 'description':
+                        if (value.length > 200) {
+                            error = '分类描述不能超过200个字符';
+                        }
+                        break;
+                    case 'sortOrder':
+                        const num = parseInt(value);
+                        if (isNaN(num) || num < 0 || num > 999) {
+                            error = '排序权重必须是0-999之间的数字';
+                        }
+                        break;
+                }
+                
+                errorElement.textContent = error;
+                return !error;
+            }
+
+            isDuplicateName(name) {
+                return this.categories.some(cat => 
+                    cat.name === name && 
+                    (!this.isEditing || cat.id !== this.currentCategory.id)
+                );
+            }
+
+            validateForm() {
+                const nameValid = this.validateField('name');
+                const descriptionValid = this.validateField('description');
+                const sortOrderValid = this.validateField('sortOrder');
+                
+                return nameValid && descriptionValid && sortOrderValid;
+            }
+
+            clearErrors() {
+                document.getElementById('nameError').textContent = '';
+                document.getElementById('descriptionError').textContent = '';
+                document.getElementById('sortOrderError').textContent = '';
+            }
+
+            async saveCategory() {
+                if (!this.validateForm()) {
+                    return;
+                }
+                
+                try {
+                    this.setModalLoading(true);
+                    
+                    const formData = {
+                        name: document.getElementById('categoryName').value.trim(),
+                        description: document.getElementById('categoryDescription').value.trim(),
+                        sortOrder: parseInt(document.getElementById('sortOrder').value) || 0,
+                        status: document.getElementById('statusSwitch').classList.contains('active') ? 'ACTIVE' : 'INACTIVE'
+                    };
+                    
+                    let response;
+                    if (this.isEditing) {
+                        response = await ApiService.product.updateCategory(this.currentCategory.id, formData);
+                    } else {
+                        response = await ApiService.product.createCategory(formData);
+                    }
+                    
+                    if (response.success) {
+                        Message.success(this.isEditing ? '分类更新成功' : '分类创建成功');
+                        this.hideCategoryModal();
+                        await this.loadCategories();
+                    } else {
+                        Message.error(response.message || (this.isEditing ? '更新失败' : '创建失败'));
+                    }
+                } catch (error) {
+                    console.error('保存分类失败:', error);
+                    Message.error('保存失败，请重试');
+                } finally {
+                    this.setModalLoading(false);
+                }
+            }
+
+            editCategory(categoryId) {
+                const category = this.categories.find(cat => cat.id === categoryId);
+                if (category) {
+                    this.showCategoryModal(category);
+                }
+            }
+
+            async toggleCategoryStatus(categoryId) {
+                const category = this.categories.find(cat => cat.id === categoryId);
+                if (!category) return;
+                
+                const newStatus = category.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+                const action = newStatus === 'ACTIVE' ? '启用' : '禁用';
+                
+                const confirmed = await Confirm.show({
+                    title: `${action}分类`,
+                    message: `确定要${action}分类"${category.name}"吗？`,
+                    confirmText: action,
+                    type: newStatus === 'ACTIVE' ? 'success' : 'warning'
+                });
+                
+                if (!confirmed) return;
+                
+                try {
+                    const response = await ApiService.product.updateCategoryStatus(categoryId, newStatus);
+                    
+                    if (response.success) {
+                        Message.success(`${action}成功`);
+                        await this.loadCategories();
+                    } else {
+                        Message.error(response.message || `${action}失败`);
+                    }
+                } catch (error) {
+                    console.error(`${action}分类失败:`, error);
+                    Message.error(`${action}失败，请重试`);
+                }
+            }
+
+            async deleteCategory(categoryId) {
+                const category = this.categories.find(cat => cat.id === categoryId);
+                if (!category) return;
+                
+                const confirmed = await Confirm.show({
+                    title: '删除分类',
+                    message: `确定要删除分类"${category.name}"吗？此操作不可恢复。`,
+                    confirmText: '删除',
+                    type: 'danger'
+                });
+                
+                if (!confirmed) return;
+                
+                try {
+                    const response = await ApiService.product.deleteCategory(categoryId);
+                    
+                    if (response.success) {
+                        Message.success('删除成功');
+                        await this.loadCategories();
+                    } else {
+                        Message.error(response.message || '删除失败');
+                    }
+                } catch (error) {
+                    console.error('删除分类失败:', error);
+                    Message.error('删除失败，请重试');
+                }
+            }
+
+            setLoading(loading) {
+                this.isLoading = loading;
+                const grid = document.getElementById('categoriesGrid');
+                
+                if (loading && this.categories.length === 0) {
+                    grid.innerHTML = `
+                        <div class="loading-overlay show" style="position: relative; height: 200px; grid-column: 1 / -1;">
+                            <div class="spinner"></div>
+                        </div>
+                    `;
+                }
+            }
+
+            setModalLoading(loading) {
+                const overlay = document.getElementById('modalLoading');
+                const submitBtn = document.getElementById('submitBtn');
+                
+                if (loading) {
+                    overlay.classList.add('show');
+                    submitBtn.disabled = true;
+                } else {
+                    overlay.classList.remove('show');
+                    submitBtn.disabled = false;
+                }
+            }
+        }
+
+        // 初始化
+        let categoryManager;
+        document.addEventListener('DOMContentLoaded', () => {
+            categoryManager = new CategoryManager();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API测试页面</title>
+</head>
+<body>
+    <h1>API测试页面</h1>
+    <div id="result"></div>
+    <button onclick="testAPI()">测试API</button>
+    
+    <script>
+        function log(msg) {
+            document.getElementById('result').innerHTML += msg + '<br>';
+        }
+        
+        log('页面加载完成');
+        
+        async function testAPI() {
+            try {
+                log('开始测试API...');
+                const response = await fetch('/api/v1/merchants/nearby?page=1&size=10', {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                log('API响应成功: ' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                log('API错误: ' + error.message);
+            }
+        }
+        
+        // 自动测试
+        setTimeout(testAPI, 1000);
+    </script>
+</body>
+</html>

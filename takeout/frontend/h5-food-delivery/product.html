@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品详情 - 外卖点餐</title>
+    <link rel="stylesheet" href="css/common.css">
+    <style>
+        body {
+            background-color: var(--canvas);
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 750px;
+            margin: 0 auto;
+            background: var(--canvas);
+            min-height: 100vh;
+            position: relative;
+            padding-bottom: 156px; /* 底部操作栏 + 底部导航 */
+        }
+
+        /* 顶部导航 */
+        .header-nav {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--canvas);
+            border-bottom: 1px solid var(--line);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--surface-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--ink);
+            border: none;
+            flex: none;
+            cursor: pointer;
+            transition: background-color var(--transition-base);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .icon-btn svg { width: 19px; height: 19px; }
+        .icon-btn:active { background: var(--surface-3); }
+
+        .header-title {
+            flex: 1;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            color: var(--ink);
+            text-align: center;
+            margin: 0 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        #favoriteBtn.favorited {
+            color: var(--deadline);
+        }
+
+        #favoriteBtn.favorited svg {
+            fill: var(--deadline);
+            stroke: var(--deadline);
+        }
+
+        /* 商品主图 */
+        .product-image {
+            width: 100%;
+            height: 260px;
+            background: var(--surface-2);
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .image-indicator {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background: var(--ink);
+            color: #fff;
+            padding: 3px 10px;
+            border-radius: var(--radius-full);
+            font-size: 13px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* 白色分组：用 1px 分隔线区隔，不套卡片 */
+        .product-info,
+        .product-specs,
+        .quantity-section,
+        .product-details,
+        .product-reviews {
+            background: var(--surface);
+            padding: 18px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        /* 商品信息 */
+        .product-name {
+            font-family: var(--font-serif);
+            font-size: 23px;
+            font-weight: 600;
+            letter-spacing: -0.6px;
+            line-height: 1.35;
+            color: var(--ink);
+            margin-bottom: 8px;
+        }
+
+        .product-desc {
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .product-tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .product-tag {
+            padding: 3px 9px;
+            background: var(--meeting);
+            color: var(--meeting-ink);
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: var(--radius-sm);
+        }
+
+        .product-price {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .current-price {
+            font-size: 26px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            color: var(--deadline);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .current-price small {
+            font-size: 15px;
+            font-weight: 550;
+        }
+
+        .original-price {
+            font-size: 14px;
+            color: var(--muted);
+            text-decoration: line-through;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .product-stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .stat-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-item svg {
+            width: 15px;
+            height: 15px;
+            flex: none;
+            color: var(--muted);
+        }
+
+        .stat-item .stat-star {
+            fill: var(--meeting);
+            stroke: none;
+        }
+
+        /* 规格选择 */
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            color: var(--ink);
+            margin-bottom: 12px;
+        }
+
+        .spec-group {
+            margin-bottom: 16px;
+        }
+
+        .spec-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .spec-label {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 9px;
+        }
+
+        .spec-options {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .spec-option {
+            padding: 8px 15px;
+            border: 1px solid var(--line-strong);
+            border-radius: var(--radius-full);
+            font-size: 13px;
+            color: var(--ink);
+            background: var(--surface);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .spec-option:active {
+            background: var(--surface-2);
+        }
+
+        .spec-option.active {
+            background: var(--ink);
+            color: #fff;
+            border-color: var(--ink);
+            font-weight: 550;
+        }
+
+        .spec-option.disabled {
+            background: var(--surface-2);
+            color: var(--ink-soft);
+            border-color: var(--line);
+            cursor: not-allowed;
+        }
+
+        /* 数量选择 */
+        .quantity-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .quantity-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .quantity-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 1px solid var(--line-strong);
+            background: var(--surface);
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            transition: all var(--transition-base);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .quantity-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.7;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .quantity-btn:active {
+            background: var(--surface-2);
+        }
+
+        .quantity-btn:disabled {
+            color: var(--faint);
+            border-color: var(--line);
+            cursor: not-allowed;
+        }
+
+        .quantity-number {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--ink);
+            min-width: 24px;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* 商品详情 */
+        .details-content {
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .nutrition-info {
+            margin-top: 14px;
+            padding: 14px;
+            background: var(--surface-2);
+            border-radius: var(--radius-md);
+        }
+
+        .nutrition-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--ink);
+            margin-bottom: 10px;
+        }
+
+        .nutrition-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px 16px;
+        }
+
+        .nutrition-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--ink);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .nutrition-item span:first-child {
+            color: var(--ink-soft);
+        }
+
+        /* 评价 */
+        .reviews-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .reviews-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        .reviews-more {
+            font-size: 13px;
+            color: var(--muted);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .reviews-more svg {
+            width: 14px;
+            height: 14px;
+            color: var(--muted);
+        }
+
+        .review-item {
+            padding: 13px 0;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .review-item:last-child {
+            border-bottom: none;
+        }
+
+        .review-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .review-user {
+            font-size: 14px;
+            font-weight: 550;
+            color: var(--ink);
+        }
+
+        .review-rating {
+            display: inline-flex;
+            gap: 1px;
+        }
+
+        .review-rating svg {
+            width: 13px;
+            height: 13px;
+            fill: var(--meeting);
+            stroke: none;
+        }
+
+        .review-content {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+
+        .empty-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 14px;
+            color: var(--faint);
+        }
+
+        .empty-icon svg {
+            width: 48px;
+            height: 48px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .empty-text {
+            font-size: 14px;
+        }
+
+        /* 底部操作栏：贴在底部导航之上 */
+        .action-bar {
+            position: fixed;
+            bottom: 72px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 750px;
+            background: var(--surface);
+            border-top: 1px solid var(--line);
+            padding: 10px 16px;
+            display: flex;
+            gap: 10px;
+            z-index: 999;
+        }
+
+        .add-cart-btn {
+            flex: 1;
+            padding: 13px;
+            background: var(--surface);
+            color: var(--ink);
+            border: 1px solid var(--line-strong);
+            border-radius: var(--radius-full);
+            font-size: 15px;
+            font-weight: 550;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .add-cart-btn:active {
+            background: var(--surface-2);
+        }
+
+        .buy-now-btn {
+            flex: 1;
+            padding: 13px;
+            background: var(--ink);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-full);
+            font-size: 15px;
+            font-weight: 550;
+            cursor: pointer;
+            transition: background-color var(--transition-base);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .buy-now-btn:active {
+            background: var(--ink-soft);
+        }
+
+        .add-cart-btn:disabled,
+        .buy-now-btn:disabled {
+            background: var(--surface-3);
+            color: var(--muted);
+            border-color: var(--line);
+            cursor: not-allowed;
+        }
+
+        /* 底部导航 */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 750px;
+            height: 72px;
+            background: var(--canvas);
+            border-top: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 8px 12px 12px;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 7px 2px;
+            border-radius: 22px;
+            transition: all var(--transition-base);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .nav-item.active {
+            color: var(--ink);
+            background: var(--surface-3);
+            font-weight: 550;
+        }
+
+        .nav-icon {
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .nav-icon svg {
+            width: 21px;
+            height: 21px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.7;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .nav-text {
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .cart-badge {
+            position: relative;
+        }
+
+        .cart-count {
+            position: absolute;
+            top: -5px;
+            right: -8px;
+            background: var(--deadline);
+            color: #fff;
+            border-radius: 999px;
+            padding: 1px 5px;
+            font-size: 10px;
+            font-weight: 600;
+            min-width: 17px;
+            height: 17px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        @media (max-width: 375px) {
+            .action-bar {
+                bottom: 66px;
+            }
+        }
+
+        @media (min-width: 414px) {
+            .action-bar {
+                bottom: 76px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .product-image {
+                height: 220px;
+            }
+
+            .spec-option {
+                padding: 7px 13px;
+                font-size: 13px;
+            }
+
+            .nutrition-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部导航 -->
+        <div class="header-nav">
+            <button class="icon-btn" id="backBtn" aria-label="返回">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+            </button>
+            <div class="header-title" id="headerTitle">商品详情</div>
+            <div class="header-actions">
+                <button class="icon-btn" id="shareBtn" aria-label="分享">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 13v6h14v-6"/></svg>
+                </button>
+                <button class="icon-btn" id="favoriteBtn" aria-label="收藏">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-9.5A4 4 0 0 1 12 8a4 4 0 0 1 7 2.5C19 15.6 12 20 12 20z"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- 商品图片 -->
+        <div class="product-image" id="productImage">
+            <!-- 图片将通过JavaScript动态加载 -->
+        </div>
+
+        <!-- 商品信息 -->
+        <div class="product-info" id="productInfo">
+            <!-- 商品信息将通过JavaScript动态加载 -->
+        </div>
+
+        <!-- 规格选择 -->
+        <div class="product-specs" id="productSpecs" style="display: none;">
+            <!-- 规格将通过JavaScript动态加载 -->
+        </div>
+
+        <!-- 数量选择 -->
+        <div class="quantity-section">
+            <div class="quantity-header">
+                <div class="quantity-title">数量</div>
+                <div class="quantity-control">
+                    <button class="quantity-btn" id="decreaseBtn" disabled aria-label="减少">
+                        <svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg>
+                    </button>
+                    <span class="quantity-number" id="quantityNumber">1</span>
+                    <button class="quantity-btn" id="increaseBtn" aria-label="增加">
+                        <svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 商品详情 -->
+        <div class="product-details" id="productDetails">
+            <!-- 详情将通过JavaScript动态加载 -->
+        </div>
+
+        <!-- 评价 -->
+        <div class="product-reviews" id="productReviews">
+            <!-- 评价将通过JavaScript动态加载 -->
+        </div>
+
+        <!-- 空状态 -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">
+                <svg viewBox="0 0 24 24"><path d="M4 11h16a8 8 0 0 1-16 0z"/><path d="M9 5v3M15 5v3"/><path d="M6 19h12"/></svg>
+            </div>
+            <div class="empty-text">商品信息加载失败</div>
+        </div>
+    </div>
+
+    <!-- 底部操作栏 -->
+    <div class="action-bar">
+        <button class="add-cart-btn" id="addCartBtn">加入购物车</button>
+        <button class="buy-now-btn" id="buyNowBtn">立即购买</button>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="bottom-nav">
+        <div class="nav-item" data-page="index" id="homeIcon">
+            <div class="nav-icon">
+                <svg viewBox="0 0 24 24"><path d="M4 11l8-6.5L20 11v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg>
+            </div>
+            <div class="nav-text">首页</div>
+        </div>
+        <div class="nav-item" data-page="search">
+            <div class="nav-icon">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-3.6-3.6"/></svg>
+            </div>
+            <div class="nav-text">搜索</div>
+        </div>
+        <div class="nav-item cart-badge" data-page="cart" id="cartIcon">
+            <div class="nav-icon">
+                <svg viewBox="0 0 24 24"><circle cx="9.5" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/><path d="M3 4h2l2.3 10.6a1 1 0 0 0 1 .8h8.4a1 1 0 0 0 1-.8L19.5 8H6"/></svg>
+                <div class="cart-count" id="cartBadge" style="display: none;">0</div>
+            </div>
+            <div class="nav-text">购物车</div>
+        </div>
+        <div class="nav-item" data-page="orders">
+            <div class="nav-icon">
+                <svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-1.8-3 1.8-3-1.8L6 21z"/><path d="M9 8h6M9 12h6"/></svg>
+            </div>
+            <div class="nav-text">订单</div>
+        </div>
+        <div class="nav-item" data-page="profile">
+            <div class="nav-icon">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/></svg>
+            </div>
+            <div class="nav-text">我的</div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        $(document).ready(function() {
+            let productId = null;
+            let merchantId = null;
+            let productData = null;
+            let selectedSpecs = {};
+            let quantity = 1;
+            let currentPrice = 0;
+
+            // 无图时的占位图标（碗）
+            const PLACEHOLDER_BOWL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:64px;height:64px;color:var(--faint)"><path d="M4 11h16a8 8 0 0 1-16 0z"/><path d="M9 5v3M15 5v3"/><path d="M6 19h12"/></svg>';
+
+            // 评分星（实心）
+            const STAR_FILLED = '<svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.8.9-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.9z"/></svg>';
+
+            // 初始化页面
+            init();
+
+            function init() {
+                // 检查登录状态
+                if (!AuthUtil.isLoggedIn()) {
+                    RouterUtil.navigateTo('login');
+                    return;
+                }
+
+                // 获取商品ID
+                productId = RouterUtil.getUrlParam('id');
+                merchantId = RouterUtil.getUrlParam('merchantId');
+
+                if (!productId) {
+                    UIUtil.showToast('商品信息不存在', 'error');
+                    RouterUtil.goBack();
+                    return;
+                }
+
+                // 加载商品信息
+                loadProductInfo();
+
+                // 更新购物车显示
+                updateCartDisplay();
+
+                // 绑定事件
+                bindEvents();
+            }
+
+            function bindEvents() {
+                // 返回按钮
+                $('#backBtn').on('click', function() {
+                    RouterUtil.goBack();
+                });
+
+                // 分享按钮
+                $('#shareBtn').on('click', function() {
+                    shareProduct();
+                });
+
+                // 收藏按钮
+                $('#favoriteBtn').on('click', function() {
+                    toggleFavorite();
+                });
+
+                // 数量控制
+                $('#decreaseBtn').on('click', function() {
+                    if (quantity > 1) {
+                        quantity--;
+                        updateQuantityDisplay();
+                    }
+                });
+
+                $('#increaseBtn').on('click', function() {
+                    if (quantity < 99) {
+                        quantity++;
+                        updateQuantityDisplay();
+                    }
+                });
+
+                // 规格选择
+                $(document).on('click', '.spec-option', function() {
+                    if ($(this).hasClass('disabled')) return;
+
+                    const specType = $(this).data('spec-type');
+                    const specValue = $(this).data('spec-value');
+
+                    selectSpec(specType, specValue);
+                });
+
+                // 底部操作
+                $('#homeIcon').on('click', function() {
+                    RouterUtil.navigateTo('index');
+                });
+
+                $('#cartIcon').on('click', function() {
+                    RouterUtil.navigateTo('cart');
+                });
+
+                $('#addCartBtn').on('click', function() {
+                    addToCart();
+                });
+
+                $('#buyNowBtn').on('click', function() {
+                    buyNow();
+                });
+
+                // 底部导航
+                $('.nav-item').on('click', function() {
+                    const page = $(this).data('page');
+                    if (page) {
+                        RouterUtil.navigateTo(page);
+                    }
+                });
+            }
+
+            // 加载商品信息
+            async function loadProductInfo() {
+                try {
+                    UIUtil.showLoading('加载中...');
+
+                    const response = await http.get(`/products/${productId}`);
+                    productData = response.data;
+
+                    renderProductInfo(productData);
+
+                } catch (error) {
+                    UIUtil.showToast(error.message || '加载商品信息失败', 'error');
+                    $('#emptyState').show();
+                } finally {
+                    UIUtil.hideLoading();
+                }
+            }
+
+            // 渲染商品信息
+            function renderProductInfo(product) {
+                $('#headerTitle').text(product.productName);
+
+                // 渲染商品图片（为空时用碗形占位）
+                const heroImg = product.productImage || product.mainImage || '';
+                if (heroImg) {
+                    $('#productImage').html(`
+                        <img src="${heroImg}" alt="${product.productName}">
+                        <div class="image-indicator">1/1</div>
+                    `);
+                    $('#productImage img').on('error', function() {
+                        $('#productImage').html(PLACEHOLDER_BOWL);
+                    });
+                } else {
+                    $('#productImage').html(PLACEHOLDER_BOWL);
+                }
+
+                const tags = (product.tags && product.tags.length) ? product.tags : ['热销', '招牌'];
+
+                // 渲染商品信息
+                $('#productInfo').html(`
+                    <div class="product-name">${product.productName}</div>
+                    <div class="product-desc">${product.productDescription || '暂无描述'}</div>
+                    <div class="product-tags">
+                        ${tags.map(tag => `<span class="product-tag">${tag}</span>`).join('')}
+                    </div>
+                    <div class="product-price">
+                        <span class="current-price"><small>¥</small>${FormatUtil.formatMoney(product.productPrice)}</span>
+                        ${product.originalPrice && product.originalPrice > product.productPrice ? `<span class="original-price">¥${FormatUtil.formatMoney(product.originalPrice)}</span>` : ''}
+                    </div>
+                    <div class="product-stats">
+                        <div class="stat-item">
+                            <svg class="stat-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.8.9-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.9z"/></svg>
+                            <span>${product.rating || '4.5'}</span>
+                        </div>
+                        <div class="stat-item">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5"/><path d="M12 12v9"/></svg>
+                            <span>月售${product.monthlySales || 0}份</span>
+                        </div>
+                        <div class="stat-item">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
+                            <span>库存${product.stock || 999}件</span>
+                        </div>
+                    </div>
+                `);
+
+                // 设置当前价格
+                currentPrice = product.productPrice;
+
+                // 渲染规格（如果有）
+                if (product.specs && product.specs.length > 0) {
+                    renderSpecs(product.specs);
+                }
+
+                // 渲染商品详情
+                renderProductDetails(product);
+
+                // 渲染评价
+                renderProductReviews(product);
+            }
+
+            // 渲染规格
+            function renderSpecs(specs) {
+                const $specs = $('#productSpecs');
+                $specs.show();
+
+                let specsHtml = '<div class="section-title">选择规格</div>';
+
+                specs.forEach(spec => {
+                    specsHtml += `
+                        <div class="spec-group">
+                            <div class="spec-label">${spec.specName}</div>
+                            <div class="spec-options">
+                                ${spec.options.map(option => `
+                                    <div class="spec-option" data-spec-type="${spec.specName}" data-spec-value="${option.value}">
+                                        ${option.label}
+                                        ${option.price ? `(+¥${FormatUtil.formatMoney(option.price)})` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                $specs.html(specsHtml);
+            }
+
+            // 选择规格
+            function selectSpec(specType, specValue) {
+                selectedSpecs[specType] = specValue;
+
+                // 更新规格样式
+                $(`.spec-option[data-spec-type="${specType}"]`).removeClass('active');
+                $(`.spec-option[data-spec-type="${specType}"][data-spec-value="${specValue}"]`).addClass('active');
+
+                // 重新计算价格
+                calculatePrice();
+            }
+
+            // 计算价格
+            function calculatePrice() {
+                let totalPrice = productData.productPrice;
+
+                // 添加规格价格
+                if (productData.specs) {
+                    productData.specs.forEach(spec => {
+                        const selectedValue = selectedSpecs[spec.specName];
+                        if (selectedValue) {
+                            const option = spec.options.find(opt => opt.value === selectedValue);
+                            if (option && option.price) {
+                                totalPrice += option.price;
+                            }
+                        }
+                    });
+                }
+
+                currentPrice = totalPrice;
+
+                // 更新价格显示
+                $('.current-price').text(`¥${FormatUtil.formatMoney(totalPrice)}`);
+            }
+
+            // 渲染商品详情
+            function renderProductDetails(product) {
+                $('#productDetails').html(`
+                    <div class="section-title">商品详情</div>
+                    <div class="details-content">
+                        ${product.detailDescription || product.productDescription || '暂无详细描述'}
+                    </div>
+                    ${product.nutrition ? `
+                        <div class="nutrition-info">
+                            <div class="nutrition-title">营养成分</div>
+                            <div class="nutrition-list">
+                                <div class="nutrition-item">
+                                    <span>热量</span>
+                                    <span>${product.nutrition.calories || 0}千卡</span>
+                                </div>
+                                <div class="nutrition-item">
+                                    <span>蛋白质</span>
+                                    <span>${product.nutrition.protein || 0}g</span>
+                                </div>
+                                <div class="nutrition-item">
+                                    <span>脂肪</span>
+                                    <span>${product.nutrition.fat || 0}g</span>
+                                </div>
+                                <div class="nutrition-item">
+                                    <span>碳水化合物</span>
+                                    <span>${product.nutrition.carbs || 0}g</span>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                `);
+            }
+
+            // 渲染评价
+            function renderProductReviews(product) {
+                const reviews = product.reviews || [
+                    {
+                        userName: '用户***1',
+                        rating: 5,
+                        content: '味道很好，分量足，下次还会再买！',
+                        createTime: '2024-01-15'
+                    },
+                    {
+                        userName: '用户***2',
+                        rating: 4,
+                        content: '包装很好，送达及时，口感不错。',
+                        createTime: '2024-01-14'
+                    }
+                ];
+
+                $('#productReviews').html(`
+                    <div class="reviews-header">
+                        <div class="reviews-title">用户评价 (${reviews.length})</div>
+                        <div class="reviews-more">查看全部<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+                    </div>
+                    ${reviews.slice(0, 3).map(review => `
+                        <div class="review-item">
+                            <div class="review-header">
+                                <div class="review-user">${review.userName}</div>
+                                <div class="review-rating">${STAR_FILLED.repeat(review.rating)}</div>
+                            </div>
+                            <div class="review-content">${review.content}</div>
+                        </div>
+                    `).join('')}
+                `);
+            }
+
+            // 更新数量显示
+            function updateQuantityDisplay() {
+                $('#quantityNumber').text(quantity);
+                $('#decreaseBtn').prop('disabled', quantity <= 1);
+                $('#increaseBtn').prop('disabled', quantity >= 99);
+            }
+
+            // 更新购物车显示
+            function updateCartDisplay() {
+                const totalCount = CartUtil.getCartItemCount();
+                const $cartBadge = $('#cartBadge');
+
+                if (totalCount > 0) {
+                    $cartBadge.text(totalCount > 99 ? '99+' : totalCount).show();
+                } else {
+                    $cartBadge.hide();
+                }
+            }
+
+            // 添加到购物车
+            function addToCart() {
+                if (!validateSelection()) return;
+
+                const cartItem = {
+                    ...productData,
+                    merchantId: merchantId,
+                    selectedSpecs: selectedSpecs,
+                    finalPrice: currentPrice
+                };
+
+                CartUtil.addToCart(cartItem, quantity);
+                updateCartDisplay();
+
+                UIUtil.showToast(`已添加${quantity}件商品到购物车`, 'success');
+
+                // 重置数量
+                quantity = 1;
+                updateQuantityDisplay();
+            }
+
+            // 立即购买
+            function buyNow() {
+                if (!validateSelection()) return;
+
+                const cartItem = {
+                    ...productData,
+                    merchantId: merchantId,
+                    selectedSpecs: selectedSpecs,
+                    finalPrice: currentPrice,
+                    quantity: quantity
+                };
+
+                // 清空购物车并添加当前商品
+                CartUtil.clearCart();
+                CartUtil.addToCart(cartItem, quantity);
+
+                // 跳转到订单确认页
+                RouterUtil.navigateTo('order-confirm');
+            }
+
+            // 验证选择
+            function validateSelection() {
+                // 检查是否选择了所有必需的规格
+                if (productData.specs) {
+                    for (const spec of productData.specs) {
+                        if (!selectedSpecs[spec.specName]) {
+                            UIUtil.showToast(`请选择${spec.specName}`, 'warning');
+                            return false;
+                        }
+                    }
+                }
+
+                // 检查库存
+                if (quantity > (productData.stock || 999)) {
+                    UIUtil.showToast('库存不足', 'warning');
+                    return false;
+                }
+
+                return true;
+            }
+
+            // 分享商品
+            function shareProduct() {
+                if (navigator.share) {
+                    navigator.share({
+                        title: productData.productName,
+                        text: `推荐一个好商品：${productData.productName}`,
+                        url: window.location.href
+                    });
+                } else {
+                    // 复制链接
+                    navigator.clipboard.writeText(window.location.href).then(() => {
+                        UIUtil.showToast('链接已复制到剪贴板', 'success');
+                    }).catch(() => {
+                        UIUtil.showToast('分享功能暂不可用', 'error');
+                    });
+                }
+            }
+
+            // 切换收藏
+            function toggleFavorite() {
+                const $btn = $('#favoriteBtn');
+                const isFavorited = $btn.hasClass('favorited');
+
+                if (isFavorited) {
+                    $btn.removeClass('favorited');
+                    UIUtil.showToast('已取消收藏', 'info');
+                } else {
+                    $btn.addClass('favorited');
+                    UIUtil.showToast('已收藏', 'success');
+                }
+            }
+
+            // 定期更新购物车显示
+            setInterval(updateCartDisplay, 1000);
+        });
+    </script>
+</body>
+</html>

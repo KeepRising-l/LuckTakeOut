@@ -1,0 +1,9 @@
+# 第三方课程项目（自带独立 git 仓库，指向 gitcode.net，不入本仓库）
+lucky-tackout/
+
+# 设计改造的截图证据（体积大、非产品代码），说明见 takeout/_uidesign 外的交付文档
+_uidesign/
+
+# 系统杂项
+Thumbs.db
+.DS_Store

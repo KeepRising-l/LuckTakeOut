@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品管理 - 外卖运营管理后台</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .product-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        
+        .product-stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .product-stat-card .icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
+            font-size: 20px;
+            color: white;
+        }
+        
+        .product-stat-card.total .icon { background: var(--primary-color); }
+        .product-stat-card.active .icon { background: var(--success-color); }
+        .product-stat-card.inactive .icon { background: var(--warning-color); }
+        .product-stat-card.low-stock .icon { background: var(--error-color); }
+        
+        .product-stat-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        
+        .product-stat-card .label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        .product-filters {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .filter-group label {
+            font-weight: 500;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        
+        .filter-select, .filter-input {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .product-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .table-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .table-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .data-table th {
+            background: var(--bg-secondary);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .data-table td {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+        
+        .data-table tr:hover {
+            background: var(--bg-secondary);
+        }
+        
+        .product-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .product-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 24px;
+            overflow: hidden;
+        }
+        
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .product-details {
+            flex: 1;
+        }
+        
+        .product-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        
+        .product-description {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+        
+        .product-price {
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 16px;
+        }
+        
+        .product-stock {
+            text-align: center;
+        }
+        
+        .stock-value {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .stock-value.low {
+            color: var(--error-color);
+        }
+        
+        .stock-value.normal {
+            color: var(--success-color);
+        }
+        
+        .stock-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        
+        .category-tag {
+            display: inline-block;
+            padding: 4px 8px;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .action-btn.edit {
+            background: var(--info-color);
+            color: white;
+        }
+        
+        .action-btn.toggle {
+            background: var(--warning-color);
+            color: white;
+        }
+        
+        .action-btn.delete {
+            background: var(--error-color);
+            color: white;
+        }
+        
+        .action-btn:hover {
+            opacity: 0.8;
+            transform: translateY(-1px);
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            background: white;
+            color: var(--text-primary);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination button.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        
+        .image-upload {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .image-upload:hover {
+            border-color: var(--primary-color);
+            background: var(--bg-secondary);
+        }
+        
+        .image-upload .icon {
+            font-size: 32px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        
+        .image-upload .text {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-utensils"></i>
+                    <span>外卖运营后台</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="index.html" class="nav-link">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>数据概览</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="orders.html" class="nav-link">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span>订单管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="merchants.html" class="nav-link">
+                            <i class="fas fa-store"></i>
+                            <span>商家管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="users.html" class="nav-link">
+                            <i class="fas fa-users"></i>
+                            <span>用户管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item active">
+                        <a href="products.html" class="nav-link">
+                            <i class="fas fa-box"></i>
+                            <span>商品管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="marketing.html" class="nav-link">
+                            <i class="fas fa-bullhorn"></i>
+                            <span>营销活动</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="finance.html" class="nav-link">
+                            <i class="fas fa-chart-line"></i>
+                            <span>财务管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="settings.html" class="nav-link">
+                            <i class="fas fa-cog"></i>
+                            <span>系统设置</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 顶部导航栏 -->
+            <header class="top-nav">
+                <div class="nav-left">
+                    <button class="sidebar-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="breadcrumb">
+                        <span>商品管理</span>
+                    </div>
+                </div>
+                <div class="nav-right">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="搜索商品...">
+                    </div>
+                    <button class="notification-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">5</span>
+                    </button>
+                    <div class="user-menu">
+                        <img src="https://via.placeholder.com/32" alt="用户头像">
+                        <span>管理员</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 页面内容 -->
+            <div class="page-content">
+                <!-- 商品统计 -->
+                <div class="product-stats">
+                    <div class="product-stat-card total">
+                        <div class="icon">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div class="value" id="totalProducts">0</div>
+                        <div class="label">商品总数</div>
+                    </div>
+                    <div class="product-stat-card active">
+                        <div class="icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="value" id="activeProducts">0</div>
+                        <div class="label">在售商品</div>
+                    </div>
+                    <div class="product-stat-card inactive">
+                        <div class="icon">
+                            <i class="fas fa-pause-circle"></i>
+                        </div>
+                        <div class="value" id="inactiveProducts">0</div>
+                        <div class="label">下架商品</div>
+                    </div>
+                    <div class="product-stat-card low-stock">
+                        <div class="icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="value" id="lowStockProducts">0</div>
+                        <div class="label">库存不足</div>
+                    </div>
+                </div>
+
+                <!-- 筛选条件 -->
+                <div class="product-filters">
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label>商品分类：</label>
+                            <select class="filter-select" id="categoryFilter">
+                                <option value="">全部分类</option>
+                                <option value="主食">主食</option>
+                                <option value="小食">小食</option>
+                                <option value="饮品">饮品</option>
+                                <option value="甜品">甜品</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>商品状态：</label>
+                            <select class="filter-select" id="statusFilter">
+                                <option value="">全部状态</option>
+                                <option value="在售">在售</option>
+                                <option value="下架">下架</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>价格范围：</label>
+                            <select class="filter-select" id="priceFilter">
+                                <option value="">全部价格</option>
+                                <option value="0-20">0-20元</option>
+                                <option value="20-50">20-50元</option>
+                                <option value="50-100">50-100元</option>
+                                <option value="100+">100元以上</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>商品名称：</label>
+                            <input type="text" class="filter-input" id="searchFilter" placeholder="输入商品名称">
+                        </div>
+                        <button class="btn btn-primary" onclick="applyFilters()">
+                            <i class="fas fa-search"></i> 搜索
+                        </button>
+                        <button class="btn btn-secondary" onclick="resetFilters()">
+                            <i class="fas fa-undo"></i> 重置
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 商品列表 -->
+                <div class="product-table">
+                    <div class="table-header">
+                        <h2 class="table-title">商品列表</h2>
+                        <div class="table-actions">
+                            <button class="btn btn-primary" onclick="addProduct()">
+                                <i class="fas fa-plus"></i> 添加商品
+                            </button>
+                            <button class="btn btn-success" onclick="exportProducts()">
+                                <i class="fas fa-download"></i> 导出
+                            </button>
+                            <button class="btn btn-info" onclick="refreshProducts()">
+                                <i class="fas fa-sync-alt"></i> 刷新
+                            </button>
+                        </div>
+                    </div>
+                    <table class="data-table" id="productTable">
+                        <thead>
+                            <tr>
+                                <th>商品信息</th>
+                                <th>分类</th>
+                                <th>价格</th>
+                                <th>库存</th>
+                                <th>状态</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productTableBody">
+                            <!-- 数据将通过JavaScript动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 分页 -->
+                <div class="pagination" id="pagination">
+                    <!-- 分页按钮将通过JavaScript动态生成 -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 商品编辑模态框 -->
+    <div class="modal" id="productModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">添加商品</h3>
+                <button class="modal-close" onclick="closeProductModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="productForm">
+                    <div class="form-group">
+                        <label>商品图片</label>
+                        <div class="image-upload" onclick="selectImage()">
+                            <div class="icon">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            <div class="text">点击上传商品图片</div>
+                        </div>
+                        <input type="file" id="imageInput" style="display: none;" accept="image/*">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>商品名称 *</label>
+                            <input type="text" id="productName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>商品分类 *</label>
+                            <select id="productCategory" required>
+                                <option value="">请选择分类</option>
+                                <option value="主食">主食</option>
+                                <option value="小食">小食</option>
+                                <option value="饮品">饮品</option>
+                                <option value="甜品">甜品</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>商品描述</label>
+                        <textarea id="productDescription" placeholder="请输入商品描述"></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>商品价格 *</label>
+                            <input type="number" id="productPrice" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label>库存数量 *</label>
+                            <input type="number" id="productStock" min="0" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>商品状态</label>
+                            <select id="productStatus">
+                                <option value="在售">在售</option>
+                                <option value="下架">下架</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>排序权重</label>
+                            <input type="number" id="productSort" value="0" min="0">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeProductModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveProduct()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/admin.js"></script>
+    <script>
+        // 商品管理页面特定的JavaScript代码
+        let currentPage = 1;
+        const pageSize = 10;
+        let products = [];
+        let filteredProducts = [];
+        let currentProduct = null;
+        let isEditMode = false;
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProducts();
+            updateProductStats();
+        });
+
+        // 加载商品数据
+        function loadProducts() {
+            // 使用模拟数据
+            products = mockData.generateProducts(50);
+            filteredProducts = [...products];
+            renderProductTable();
+            renderPagination();
+        }
+
+        // 更新商品统计
+        function updateProductStats() {
+            const totalProducts = products.length;
+            const activeProducts = products.filter(p => p.status === '在售').length;
+            const inactiveProducts = products.filter(p => p.status === '下架').length;
+            const lowStockProducts = products.filter(p => p.stock < 10).length;
+
+            document.getElementById('totalProducts').textContent = utils.formatNumber(totalProducts);
+            document.getElementById('activeProducts').textContent = utils.formatNumber(activeProducts);
+            document.getElementById('inactiveProducts').textContent = utils.formatNumber(inactiveProducts);
+            document.getElementById('lowStockProducts').textContent = utils.formatNumber(lowStockProducts);
+        }
+
+        // 渲染商品表格
+        function renderProductTable() {
+            const tbody = document.getElementById('productTableBody');
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+            const pageData = filteredProducts.slice(startIndex, endIndex);
+
+            tbody.innerHTML = pageData.map(product => `
+                <tr>
+                    <td>
+                        <div class="product-info">
+                            <div class="product-image">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            <div class="product-details">
+                                <div class="product-name">${product.name}</div>
+                                <div class="product-description">${product.description}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="category-tag">${product.category}</span>
+                    </td>
+                    <td>
+                        <div class="product-price">${utils.formatCurrency(product.price)}</div>
+                    </td>
+                    <td>
+                        <div class="product-stock">
+                            <div class="stock-value ${product.stock < 10 ? 'low' : 'normal'}">${product.stock}</div>
+                            <div class="stock-label">件</div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="status-badge ${product.status === '在售' ? 'success' : 'warning'}">${product.status}</span>
+                    </td>
+                    <td>${utils.formatDate(product.createTime)}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn edit" onclick="editProduct('${product.id}')" title="编辑">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn toggle" onclick="toggleProductStatus('${product.id}')" title="${product.status === '在售' ? '下架' : '上架'}">
+                                <i class="fas fa-${product.status === '在售' ? 'pause' : 'play'}"></i>
+                            </button>
+                            <button class="action-btn delete" onclick="deleteProduct('${product.id}')" title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 渲染分页
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            const totalPages = Math.ceil(filteredProducts.length / pageSize);
+            
+            let paginationHTML = '';
+            
+            // 上一页
+            paginationHTML += `<button ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">上一页</button>`;
+            
+            // 页码
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage) {
+                    paginationHTML += `<button class="active">${i}</button>`;
+                } else if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    paginationHTML += `<button onclick="changePage(${i})">${i}</button>`;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    paginationHTML += `<span>...</span>`;
+                }
+            }
+            
+            // 下一页
+            paginationHTML += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">下一页</button>`;
+            
+            pagination.innerHTML = paginationHTML;
+        }
+
+        // 切换页面
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredProducts.length / pageSize);
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                renderProductTable();
+                renderPagination();
+            }
+        }
+
+        // 应用筛选
+        function applyFilters() {
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const priceFilter = document.getElementById('priceFilter').value;
+            const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
+
+            filteredProducts = products.filter(product => {
+                let match = true;
+                
+                if (categoryFilter && product.category !== categoryFilter) {
+                    match = false;
+                }
+                
+                if (statusFilter && product.status !== statusFilter) {
+                    match = false;
+                }
+                
+                if (priceFilter) {
+                    const price = parseFloat(product.price);
+                    switch (priceFilter) {
+                        case '0-20':
+                            if (price < 0 || price > 20) match = false;
+                            break;
+                        case '20-50':
+                            if (price < 20 || price > 50) match = false;
+                            break;
+                        case '50-100':
+                            if (price < 50 || price > 100) match = false;
+                            break;
+                        case '100+':
+                            if (price < 100) match = false;
+                            break;
+                    }
+                }
+                
+                if (searchFilter && !product.name.toLowerCase().includes(searchFilter)) {
+                    match = false;
+                }
+                
+                return match;
+            });
+
+            currentPage = 1;
+            renderProductTable();
+            renderPagination();
+        }
+
+        // 重置筛选
+        function resetFilters() {
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('priceFilter').value = '';
+            document.getElementById('searchFilter').value = '';
+            
+            filteredProducts = [...products];
+            currentPage = 1;
+            renderProductTable();
+            renderPagination();
+        }
+
+        // 添加商品
+        function addProduct() {
+            isEditMode = false;
+            currentProduct = null;
+            document.getElementById('modalTitle').textContent = '添加商品';
+            resetProductForm();
+            document.getElementById('productModal').style.display = 'block';
+        }
+
+        // 编辑商品
+        function editProduct(productId) {
+            const product = products.find(p => p.id === productId);
+            if (product) {
+                isEditMode = true;
+                currentProduct = product;
+                document.getElementById('modalTitle').textContent = '编辑商品';
+                
+                // 填充表单数据
+                document.getElementById('productName').value = product.name;
+                document.getElementById('productCategory').value = product.category;
+                document.getElementById('productDescription').value = product.description;
+                document.getElementById('productPrice').value = product.price;
+                document.getElementById('productStock').value = product.stock;
+                document.getElementById('productStatus').value = product.status;
+                document.getElementById('productSort').value = product.sort || 0;
+                
+                document.getElementById('productModal').style.display = 'block';
+            }
+        }
+
+        // 切换商品状态
+        function toggleProductStatus(productId) {
+            const product = products.find(p => p.id === productId);
+            if (product) {
+                product.status = product.status === '在售' ? '下架' : '在售';
+                utils.showNotification(`商品已${product.status}`, 'success');
+                renderProductTable();
+                updateProductStats();
+            }
+        }
+
+        // 删除商品
+        function deleteProduct(productId) {
+            if (confirm('确定要删除这个商品吗？')) {
+                const index = products.findIndex(p => p.id === productId);
+                if (index !== -1) {
+                    products.splice(index, 1);
+                    filteredProducts = filteredProducts.filter(p => p.id !== productId);
+                    utils.showNotification('商品已删除', 'success');
+                    renderProductTable();
+                    renderPagination();
+                    updateProductStats();
+                }
+            }
+        }
+
+        // 保存商品
+        function saveProduct() {
+            const form = document.getElementById('productForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const productData = {
+                name: document.getElementById('productName').value,
+                category: document.getElementById('productCategory').value,
+                description: document.getElementById('productDescription').value,
+                price: parseFloat(document.getElementById('productPrice').value),
+                stock: parseInt(document.getElementById('productStock').value),
+                status: document.getElementById('productStatus').value,
+                sort: parseInt(document.getElementById('productSort').value) || 0
+            };
+
+            if (isEditMode && currentProduct) {
+                // 更新商品
+                Object.assign(currentProduct, productData);
+                utils.showNotification('商品更新成功', 'success');
+            } else {
+                // 添加新商品
+                const newProduct = {
+                    id: 'PROD' + Date.now(),
+                    ...productData,
+                    createTime: new Date()
+                };
+                products.unshift(newProduct);
+                utils.showNotification('商品添加成功', 'success');
+            }
+
+            closeProductModal();
+            applyFilters();
+            updateProductStats();
+        }
+
+        // 重置商品表单
+        function resetProductForm() {
+            document.getElementById('productForm').reset();
+            document.getElementById('productStatus').value = '在售';
+            document.getElementById('productSort').value = '0';
+        }
+
+        // 关闭商品模态框
+        function closeProductModal() {
+            document.getElementById('productModal').style.display = 'none';
+            currentProduct = null;
+            isEditMode = false;
+        }
+
+        // 选择图片
+        function selectImage() {
+            document.getElementById('imageInput').click();
+        }
+
+        // 导出商品数据
+        function exportProducts() {
+            utils.showNotification('商品数据导出中...', 'info');
+            // 这里可以实现实际的导出逻辑
+        }
+
+        // 刷新商品数据
+        function refreshProducts() {
+            utils.showNotification('正在刷新商品数据...', 'info');
+            loadProducts();
+            updateProductStats();
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('productModal');
+            if (event.target === modal) {
+                closeProductModal();
+            }
+        }
+
+        // 图片上传处理
+        document.getElementById('imageInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // 这里可以实现图片上传逻辑
+                utils.showNotification('图片上传功能待实现', 'info');
+            }
+        });
+    </script>
+</body>
+</html>

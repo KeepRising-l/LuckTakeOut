@@ -1,0 +1,4 @@
+Django==6.1.2
+
+# 如需切换到 MySQL，取消下面注释并安装（DB_ENGINE=mysql）
+# mysqlclient==2.2.7

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>基于 Python 的外卖平台</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+         background: linear-gradient(135deg, #fff4ec, #ffe9d6); min-height: 100vh; color: #222; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 48px 20px 64px; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  .sub { color: #8a6d5a; font-size: 14px; margin-bottom: 28px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  a.card { display: block; text-decoration: none; color: inherit; background: #fff; border-radius: 14px;
+           padding: 20px; box-shadow: 0 6px 18px rgba(255, 102, 0, .10);
+           transition: transform .15s ease, box-shadow .15s ease; }
+  a.card:hover { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(255, 102, 0, .22); }
+  .icon { font-size: 28px; }
+  .name { font-size: 17px; font-weight: 600; margin: 10px 0 4px; }
+  .desc { font-size: 13px; color: #777; line-height: 1.5; }
+  .tag { display: inline-block; margin-top: 10px; font-size: 12px; color: #ff6600;
+         background: #fff1e5; border-radius: 6px; padding: 2px 8px; }
+  .footer { margin-top: 32px; font-size: 12px; color: #a08a7a; line-height: 1.7; }
+  code { background: #fff3e8; padding: 1px 6px; border-radius: 4px; color: #d2540a; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>基于 Python 的外卖平台</h1>
+  <div class="sub">多商户 · 配送 · AI 客服辅助下单 —— 演示入口</div>
+
+  <div class="grid">
+    <a class="card" href="/ai/">
+      <div class="icon">🤖</div>
+      <div class="name">AI 客服（创新点）</div>
+      <div class="desc">对话式辅助下单 / 催单 / 评价，生成待确认草稿单，后端重校验</div>
+      <div class="tag">DeepSeek-V4-Flash</div>
+    </a>
+
+    <a class="card" href="/h5/index.html">
+      <div class="icon">🛵</div>
+      <div class="name">顾客端（H5）</div>
+      <div class="desc">浏览商户、选菜加购、下单、模拟支付、查看订单</div>
+      <div class="tag">登录验证码 123456</div>
+    </a>
+
+    <a class="card" href="/merchant-admin/login.html">
+      <div class="icon">🏪</div>
+      <div class="name">商户端</div>
+      <div class="desc">菜品与分类管理、订单接单与处理、营业统计</div>
+      <div class="tag">merchant1 / merchant123</div>
+    </a>
+
+    <a class="card" href="/rider/">
+      <div class="icon">📦</div>
+      <div class="name">骑手端</div>
+      <div class="desc">待接单列表、接单、开始配送、确认送达</div>
+      <div class="tag">轻量配送</div>
+    </a>
+
+    <a class="card" href="/admin/">
+      <div class="icon">🧑💼</div>
+      <div class="name">运营后台</div>
+      <div class="desc">商户审核、全量数据管理、操作日志（审计）</div>
+      <div class="tag">admin / Takeout@2026</div>
+    </a>
+  </div>
+
+  <div class="footer">
+    提示：所有入口都跑在 <code>http://localhost:8091</code>。<br>
+    启动服务：在项目目录双击 <code>run.bat</code>（或 <code>python manage.py runserver 8091</code>）。
+  </div>
+</div>
+</body>
+</html>

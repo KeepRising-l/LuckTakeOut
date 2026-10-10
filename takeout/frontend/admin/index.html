@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>外卖运营管理后台</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-utensils"></i>
+                    <span>外卖运营后台</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul class="nav-menu">
+                    <li class="nav-item active">
+                        <a href="index.html" class="nav-link">
+                            <i class="fas fa-chart-line"></i>
+                            <span>数据统计</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="merchants.html" class="nav-link">
+                            <i class="fas fa-store"></i>
+                            <span>商家管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="users.html" class="nav-link">
+                            <i class="fas fa-users"></i>
+                            <span>用户管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="orders.html" class="nav-link">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span>订单管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="products.html" class="nav-link">
+                            <i class="fas fa-box"></i>
+                            <span>商品管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="marketing.html" class="nav-link">
+                            <i class="fas fa-bullhorn"></i>
+                            <span>营销活动</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="complaints.html" class="nav-link">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>投诉处理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="delivery.html" class="nav-link">
+                            <i class="fas fa-truck"></i>
+                            <span>配送管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="finance.html" class="nav-link">
+                            <i class="fas fa-dollar-sign"></i>
+                            <span>财务管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="settings.html" class="nav-link">
+                            <i class="fas fa-cog"></i>
+                            <span>系统设置</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 顶部导航栏 -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="sidebar-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="page-title">数据统计</h1>
+                </div>
+                
+                <div class="header-right">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="搜索...">
+                    </div>
+                    
+                    <div class="header-actions">
+                        <button class="action-btn notification-btn">
+                            <i class="fas fa-bell"></i>
+                            <span class="badge">5</span>
+                        </button>
+                        
+                        <div class="user-menu">
+                            <div class="user-avatar">
+                                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAEwUlEQVR4AeybW3bbIBCGkdaQ5uS92UeclTlemdN9pO85addQOr8kbCwDkoAfYUc5xkZc5vIxgyxZadX2l0RgA5iET6kN4L0BfH562J3L49vzkykPu0RfKdOriEAA+/n044iiVXM8F73XypQG/VrGaAOVQmSh0FUBGnAAJnYjwlCkGn4ZqAZmeDS3dxWADnDRXgLmmiCLA0T6WREXDW48ESAhe9zOPi4KEA7CUZZTkA0dLPkuucUAwjE46DIiZxt0SEofc8oMySoCsBQ8y1H5KvT4Zh3TqnSAK8DrYGn5+gPd3QHxjQ4QjhDtD4qGbpzxR4OyHlIBloiAKRpyxt9PjUnppwJEBKQYl2mu7Ie8y0AawBqizywAMwppAI3x9/5JA1hJ+pr1o6UxBWBN6WsIyq3PWTcqzuPn1SgA56kuO0oy4oWh8dsAZMCDTApA1mrD4NoKBWBtTg72bHvgACL24z12YmgeJQIb1fwKKV2jj2UTBaBS/zKv9hrI5+kkAZyn/B5GUQB+fP6tMAI5WUEBOERWNRBl/zuwFpUGsFH6MIC86w8awGHFq4jCj8+vN9Yq0gDC4BqiEOkLW1iFCrCCKHxnRh8WhQoQCn5//nmVz1VSuUQG0AEKPFXCEeixC1J3yAC7OXu9CEA4AoeyW+8RCF3s1DWqiwCEMjgEx1BnFuiALqYOW3YxgFAKx2RPbKTO2BPfZat4hQ6RX+zFAxhwQSBmP7FAJraKgFpKV1GAeMwCZXh6KusNTpE5PPrL+xHdtQJ0gAaYOHh69lkMCcFDeoeKTHe/tMLz1P2z1PhlELrdI/O10gDCeANNzAUwFKmGX7KPHZCOvhKefe41MHuQvEfdsgN0gDt7NavWekFD9iwR1qAepN73IPOnd2vpSq6OIi5Knjgc+P229cKdUiZy91o1R4CcGrukv10y2DcWkSHwtPRHOyhzi7wAErbmApkMEIZoWdmM3nsXAc7n0gNZsD1VXhJAWUk5s+p9qhHj+YhoVxmPSz0GRPgAXbGyogBCoSjWotQbLdKX9MKX4nFJEuifvNOSQbHRuBgg4EGh357b7EE0xkBcBLAUPETeGssQA3E2wFLwJsDhCmViSFr3UogXAH2qK4HnMy97+xKIswDe4543Rb2HOH3lMgkwZmOdMu5W+iVwJr+iBQECHlaisMP0fW6BPzswCI33Auz3vfxfkkPG1NiHAAILn21egHPC1yeU1d6s9NyhsPD++6wT4BC2tKsMFmCmXLnyckJ0AkTYMo0JyV4rykI2DX2yH16fla8ADtE3zNk+bAKSyldn5SuAa0afbay7znlI0q3L2XoVhRcAt+hzQrtoHEfhBcC6o+/CjzUPLqLwBPC7Rl/MSthReAIYI4gzZ/V9bpFbJ4C3kL5r3Sd0ED2lcQdwS18HoplNHcCZY7dhFgGzD3YAa0pfY5hl66laWaZ0l7odwJOFdVRkf7l+lgXwalpooMJdmhZvOKipANTYLrTVZGNvS7uTCGy7UOwb6nm3UxnRV49lZ0tkUV/a82F1tS6VAU8MvbqIr8XamgEqgEOpBZbLjlYMDDxO5pqytVkEsAeqKvdAdSN/rdwBPtxYqcreFv9XsZWvt1gGVZ9EbiGLN4CJq/QfAAD///ViDp4AAAAGSURBVAMA9ULLvwcUdM0AAAAASUVORK5CYII=" alt="用户头像">
+                            </div>
+                            <div class="user-info">
+                                <span class="user-name">管理员</span>
+                                <span class="user-role">超级管理员</span>
+                            </div>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 页面内容 -->
+            <div class="page-content">
+                <!-- 统计卡片 -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 class="stat-number" id="todayOrders">1,234</h3>
+                            <p class="stat-label">今日订单</p>
+                            <span class="stat-change positive">+12.5%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 class="stat-number" id="todayRevenue">¥45,678</h3>
+                            <p class="stat-label">今日营收</p>
+                            <span class="stat-change positive">+8.3%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 class="stat-number" id="activeUsers">8,901</h3>
+                            <p class="stat-label">活跃用户</p>
+                            <span class="stat-change positive">+15.2%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon red">
+                            <i class="fas fa-store"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 class="stat-number" id="activeMerchants">567</h3>
+                            <p class="stat-label">活跃商家</p>
+                            <span class="stat-change negative">-2.1%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 图表区域 -->
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h3>订单趋势</h3>
+                            <div class="chart-controls">
+                                <select id="orderTrendPeriod">
+                                    <option value="7">最近7天</option>
+                                    <option value="30">最近30天</option>
+                                    <option value="90">最近90天</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="orderTrendChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h3>商家分布</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="merchantDistributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 实时数据表格 -->
+                <div class="data-tables">
+                    <div class="table-card">
+                        <div class="card-header">
+                            <h3>最新订单</h3>
+                            <a href="orders.html" class="view-all-btn">查看全部</a>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>订单号</th>
+                                        <th>用户</th>
+                                        <th>商家</th>
+                                        <th>金额</th>
+                                        <th>状态</th>
+                                        <th>时间</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentOrdersTable">
+                                    <!-- 动态加载数据 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="table-card">
+                        <div class="card-header">
+                            <h3>待处理事项</h3>
+                        </div>
+                        <div class="pending-items">
+                            <div class="pending-item">
+                                <div class="item-icon orange">
+                                    <i class="fas fa-store"></i>
+                                </div>
+                                <div class="item-content">
+                                    <h4>待审核商家</h4>
+                                    <p>15个商家等待审核</p>
+                                </div>
+                                <div class="item-action">
+                                    <button class="btn btn-primary btn-sm">处理</button>
+                                </div>
+                            </div>
+                            
+                            <div class="pending-item">
+                                <div class="item-icon red">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="item-content">
+                                    <h4>待处理投诉</h4>
+                                    <p>8个投诉需要处理</p>
+                                </div>
+                                <div class="item-action">
+                                    <button class="btn btn-danger btn-sm">处理</button>
+                                </div>
+                            </div>
+                            
+                            <div class="pending-item">
+                                <div class="item-icon blue">
+                                    <i class="fas fa-undo"></i>
+                                </div>
+                                <div class="item-content">
+                                    <h4>退款申请</h4>
+                                    <p>23个退款申请待处理</p>
+                                </div>
+                                <div class="item-action">
+                                    <button class="btn btn-info btn-sm">处理</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/admin.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商家管理 - 外卖运营管理后台</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .merchant-filters {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .filter-group label {
+            font-weight: 500;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        
+        .filter-select, .filter-input {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .merchant-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .table-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .table-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .data-table th {
+            background: var(--bg-secondary);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .data-table td {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+        
+        .data-table tr:hover {
+            background: var(--bg-secondary);
+        }
+        
+        .merchant-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .merchant-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            background: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .merchant-details h4 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .merchant-details p {
+            margin: 2px 0 0 0;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .rating {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .rating-stars {
+            color: var(--warning-color);
+        }
+        
+        .rating-score {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .action-btn.view {
+            background: var(--info-color);
+            color: white;
+        }
+        
+        .action-btn.edit {
+            background: var(--warning-color);
+            color: white;
+        }
+        
+        .action-btn.approve {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .action-btn.reject {
+            background: var(--error-color);
+            color: white;
+        }
+        
+        .action-btn:hover {
+            opacity: 0.8;
+            transform: translateY(-1px);
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            background: white;
+            color: var(--text-primary);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination button.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-utensils"></i>
+                    <span>外卖运营后台</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="index.html" class="nav-link">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>数据概览</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="orders.html" class="nav-link">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span>订单管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item active">
+                        <a href="merchants.html" class="nav-link">
+                            <i class="fas fa-store"></i>
+                            <span>商家管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="users.html" class="nav-link">
+                            <i class="fas fa-users"></i>
+                            <span>用户管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="products.html" class="nav-link">
+                            <i class="fas fa-box"></i>
+                            <span>商品管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="marketing.html" class="nav-link">
+                            <i class="fas fa-bullhorn"></i>
+                            <span>营销活动</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="finance.html" class="nav-link">
+                            <i class="fas fa-chart-line"></i>
+                            <span>财务管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="settings.html" class="nav-link">
+                            <i class="fas fa-cog"></i>
+                            <span>系统设置</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 顶部导航栏 -->
+            <header class="top-nav">
+                <div class="nav-left">
+                    <button class="sidebar-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="breadcrumb">
+                        <span>商家管理</span>
+                    </div>
+                </div>
+                <div class="nav-right">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="搜索商家...">
+                    </div>
+                    <button class="notification-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">5</span>
+                    </button>
+                    <div class="user-menu">
+                        <img src="https://via.placeholder.com/32" alt="用户头像">
+                        <span>管理员</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 页面内容 -->
+            <div class="page-content">
+                <!-- 筛选条件 -->
+                <div class="merchant-filters">
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label>状态：</label>
+                            <select class="filter-select" id="statusFilter">
+                                <option value="">全部状态</option>
+                                <option value="active">营业中</option>
+                                <option value="inactive">休息中</option>
+                                <option value="pending">待审核</option>
+                                <option value="suspended">已停业</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>分类：</label>
+                            <select class="filter-select" id="categoryFilter">
+                                <option value="">全部分类</option>
+                                <option value="chinese">中式快餐</option>
+                                <option value="western">西式快餐</option>
+                                <option value="hotpot">火锅烧烤</option>
+                                <option value="dessert">甜品饮品</option>
+                                <option value="japanese">日韩料理</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>评分：</label>
+                            <select class="filter-select" id="ratingFilter">
+                                <option value="">全部评分</option>
+                                <option value="5">5星</option>
+                                <option value="4">4星以上</option>
+                                <option value="3">3星以上</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>商家名称：</label>
+                            <input type="text" class="filter-input" id="nameFilter" placeholder="输入商家名称">
+                        </div>
+                        <button class="btn btn-primary" onclick="applyFilters()">
+                            <i class="fas fa-search"></i> 搜索
+                        </button>
+                        <button class="btn btn-secondary" onclick="resetFilters()">
+                            <i class="fas fa-undo"></i> 重置
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 商家列表 -->
+                <div class="merchant-table">
+                    <div class="table-header">
+                        <h2 class="table-title">商家列表</h2>
+                        <div class="table-actions">
+                            <button class="btn btn-success" onclick="exportMerchants()">
+                                <i class="fas fa-download"></i> 导出
+                            </button>
+                            <button class="btn btn-primary" onclick="addMerchant()">
+                                <i class="fas fa-plus"></i> 新增商家
+                            </button>
+                        </div>
+                    </div>
+                    <table class="data-table" id="merchantTable">
+                        <thead>
+                            <tr>
+                                <th>商家信息</th>
+                                <th>分类</th>
+                                <th>联系方式</th>
+                                <th>评分</th>
+                                <th>月订单量</th>
+                                <th>月营业额</th>
+                                <th>状态</th>
+                                <th>加入时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="merchantTableBody">
+                            <!-- 数据将通过JavaScript动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 分页 -->
+                <div class="pagination" id="pagination">
+                    <!-- 分页按钮将通过JavaScript动态生成 -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 商家详情模态框 -->
+    <div class="modal" id="merchantModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">商家详情</h3>
+                <button class="modal-close" onclick="closeMerchantModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="merchantForm">
+                    <div class="form-group">
+                        <label>商家名称</label>
+                        <input type="text" id="merchantName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>商家分类</label>
+                        <select id="merchantCategory" required>
+                            <option value="">请选择分类</option>
+                            <option value="chinese">中式快餐</option>
+                            <option value="western">西式快餐</option>
+                            <option value="hotpot">火锅烧烤</option>
+                            <option value="dessert">甜品饮品</option>
+                            <option value="japanese">日韩料理</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>联系电话</label>
+                        <input type="tel" id="merchantPhone" required>
+                    </div>
+                    <div class="form-group">
+                        <label>商家地址</label>
+                        <input type="text" id="merchantAddress" required>
+                    </div>
+                    <div class="form-group">
+                        <label>营业时间</label>
+                        <input type="text" id="businessHours" placeholder="例：09:00-22:00">
+                    </div>
+                    <div class="form-group">
+                        <label>商家描述</label>
+                        <textarea id="merchantDescription" placeholder="请输入商家描述"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>状态</label>
+                        <select id="merchantStatus">
+                            <option value="active">营业中</option>
+                            <option value="inactive">休息中</option>
+                            <option value="pending">待审核</option>
+                            <option value="suspended">已停业</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeMerchantModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveMerchant()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/admin.js"></script>
+    <script>
+        // 商家管理页面特定的JavaScript代码
+        let currentPage = 1;
+        const pageSize = 10;
+        let merchants = [];
+        let filteredMerchants = [];
+        let currentMerchant = null;
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadMerchants();
+        });
+
+        // 加载商家数据
+        function loadMerchants() {
+            // 使用模拟数据
+            merchants = mockData.generateMerchants(50);
+            filteredMerchants = [...merchants];
+            renderMerchantTable();
+            renderPagination();
+        }
+
+        // 渲染商家表格
+        function renderMerchantTable() {
+            const tbody = document.getElementById('merchantTableBody');
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+            const pageData = filteredMerchants.slice(startIndex, endIndex);
+
+            tbody.innerHTML = pageData.map(merchant => `
+                <tr>
+                    <td>
+                        <div class="merchant-info">
+                            <div class="merchant-logo">
+                                ${merchant.name.charAt(0)}
+                            </div>
+                            <div class="merchant-details">
+                                <h4>${merchant.name}</h4>
+                                <p>${merchant.address}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${merchant.category}</td>
+                    <td>${merchant.phone}</td>
+                    <td>
+                        <div class="rating">
+                            <span class="rating-stars">
+                                ${'★'.repeat(Math.floor(merchant.rating))}${'☆'.repeat(5 - Math.floor(merchant.rating))}
+                            </span>
+                            <span class="rating-score">${merchant.rating}</span>
+                        </div>
+                    </td>
+                    <td>${utils.formatNumber(merchant.monthlyOrders)}</td>
+                    <td>${utils.formatCurrency(merchant.monthlyRevenue)}</td>
+                    <td><span class="status-badge ${merchant.status.class}">${merchant.status.text}</span></td>
+                    <td>${utils.formatDate(merchant.joinTime)}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn view" onclick="viewMerchant(${merchant.id})" title="查看">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="action-btn edit" onclick="editMerchant(${merchant.id})" title="编辑">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            ${merchant.status.text === '待审核' ? `
+                                <button class="action-btn approve" onclick="approveMerchant(${merchant.id})" title="通过">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="action-btn reject" onclick="rejectMerchant(${merchant.id})" title="拒绝">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 渲染分页
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            const totalPages = Math.ceil(filteredMerchants.length / pageSize);
+            
+            let paginationHTML = '';
+            
+            // 上一页
+            paginationHTML += `<button ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">上一页</button>`;
+            
+            // 页码
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage) {
+                    paginationHTML += `<button class="active">${i}</button>`;
+                } else if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    paginationHTML += `<button onclick="changePage(${i})">${i}</button>`;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    paginationHTML += `<span>...</span>`;
+                }
+            }
+            
+            // 下一页
+            paginationHTML += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">下一页</button>`;
+            
+            pagination.innerHTML = paginationHTML;
+        }
+
+        // 切换页面
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredMerchants.length / pageSize);
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                renderMerchantTable();
+                renderPagination();
+            }
+        }
+
+        // 应用筛选
+        function applyFilters() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const ratingFilter = document.getElementById('ratingFilter').value;
+            const nameFilter = document.getElementById('nameFilter').value.toLowerCase();
+
+            filteredMerchants = merchants.filter(merchant => {
+                let match = true;
+                
+                if (statusFilter && merchant.status.text !== getStatusText(statusFilter)) {
+                    match = false;
+                }
+                
+                if (categoryFilter && !merchant.category.includes(getCategoryText(categoryFilter))) {
+                    match = false;
+                }
+                
+                if (ratingFilter && merchant.rating < parseFloat(ratingFilter)) {
+                    match = false;
+                }
+                
+                if (nameFilter && !merchant.name.toLowerCase().includes(nameFilter)) {
+                    match = false;
+                }
+                
+                return match;
+            });
+
+            currentPage = 1;
+            renderMerchantTable();
+            renderPagination();
+        }
+
+        // 重置筛选
+        function resetFilters() {
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('ratingFilter').value = '';
+            document.getElementById('nameFilter').value = '';
+            
+            filteredMerchants = [...merchants];
+            currentPage = 1;
+            renderMerchantTable();
+            renderPagination();
+        }
+
+        // 查看商家
+        function viewMerchant(id) {
+            const merchant = merchants.find(m => m.id === id);
+            if (merchant) {
+                currentMerchant = merchant;
+                document.getElementById('modalTitle').textContent = '查看商家';
+                fillMerchantForm(merchant, true);
+                document.getElementById('merchantModal').style.display = 'block';
+            }
+        }
+
+        // 编辑商家
+        function editMerchant(id) {
+            const merchant = merchants.find(m => m.id === id);
+            if (merchant) {
+                currentMerchant = merchant;
+                document.getElementById('modalTitle').textContent = '编辑商家';
+                fillMerchantForm(merchant, false);
+                document.getElementById('merchantModal').style.display = 'block';
+            }
+        }
+
+        // 新增商家
+        function addMerchant() {
+            currentMerchant = null;
+            document.getElementById('modalTitle').textContent = '新增商家';
+            document.getElementById('merchantForm').reset();
+            setFormReadonly(false);
+            document.getElementById('merchantModal').style.display = 'block';
+        }
+
+        // 填充表单
+        function fillMerchantForm(merchant, readonly = false) {
+            document.getElementById('merchantName').value = merchant.name;
+            document.getElementById('merchantCategory').value = getCategoryValue(merchant.category);
+            document.getElementById('merchantPhone').value = merchant.phone;
+            document.getElementById('merchantAddress').value = merchant.address;
+            document.getElementById('businessHours').value = '09:00-22:00';
+            document.getElementById('merchantDescription').value = '优质商家，提供美味食品';
+            document.getElementById('merchantStatus').value = getStatusValue(merchant.status.text);
+            
+            setFormReadonly(readonly);
+        }
+
+        // 设置表单只读
+        function setFormReadonly(readonly) {
+            const inputs = document.querySelectorAll('#merchantForm input, #merchantForm select, #merchantForm textarea');
+            inputs.forEach(input => {
+                input.disabled = readonly;
+            });
+            
+            const saveBtn = document.querySelector('.modal-footer .btn-primary');
+            saveBtn.style.display = readonly ? 'none' : 'inline-block';
+        }
+
+        // 保存商家
+        function saveMerchant() {
+            const form = document.getElementById('merchantForm');
+            if (form.checkValidity()) {
+                const formData = {
+                    name: document.getElementById('merchantName').value,
+                    category: getCategoryText(document.getElementById('merchantCategory').value),
+                    phone: document.getElementById('merchantPhone').value,
+                    address: document.getElementById('merchantAddress').value,
+                    status: getStatusObject(document.getElementById('merchantStatus').value)
+                };
+                
+                if (currentMerchant) {
+                    // 更新现有商家
+                    Object.assign(currentMerchant, formData);
+                    utils.showNotification('商家信息更新成功', 'success');
+                } else {
+                    // 新增商家
+                    const newMerchant = {
+                        id: Date.now(),
+                        ...formData,
+                        rating: (Math.random() * 2 + 3).toFixed(1),
+                        monthlyOrders: Math.floor(Math.random() * 5000) + 1000,
+                        monthlyRevenue: (Math.random() * 100000 + 50000).toFixed(2),
+                        joinTime: new Date().toISOString()
+                    };
+                    merchants.unshift(newMerchant);
+                    utils.showNotification('商家添加成功', 'success');
+                }
+                
+                closeMerchantModal();
+                applyFilters();
+            } else {
+                utils.showNotification('请填写完整信息', 'warning');
+            }
+        }
+
+        // 关闭模态框
+        function closeMerchantModal() {
+            document.getElementById('merchantModal').style.display = 'none';
+            currentMerchant = null;
+        }
+
+        // 审核通过
+        function approveMerchant(id) {
+            const merchant = merchants.find(m => m.id === id);
+            if (merchant) {
+                merchant.status = { text: '营业中', class: 'success' };
+                utils.showNotification('商家审核通过', 'success');
+                renderMerchantTable();
+            }
+        }
+
+        // 审核拒绝
+        function rejectMerchant(id) {
+            const merchant = merchants.find(m => m.id === id);
+            if (merchant) {
+                merchant.status = { text: '已停业', class: 'error' };
+                utils.showNotification('商家审核拒绝', 'warning');
+                renderMerchantTable();
+            }
+        }
+
+        // 导出商家
+        function exportMerchants() {
+            utils.showNotification('商家数据导出中...', 'info');
+            // 这里可以实现实际的导出逻辑
+        }
+
+        // 辅助函数
+        function getStatusText(value) {
+            const statusMap = {
+                'active': '营业中',
+                'inactive': '休息中',
+                'pending': '待审核',
+                'suspended': '已停业'
+            };
+            return statusMap[value] || value;
+        }
+
+        function getStatusValue(text) {
+            const statusMap = {
+                '营业中': 'active',
+                '休息中': 'inactive',
+                '待审核': 'pending',
+                '已停业': 'suspended'
+            };
+            return statusMap[text] || 'active';
+        }
+
+        function getStatusObject(value) {
+            const statusMap = {
+                'active': { text: '营业中', class: 'success' },
+                'inactive': { text: '休息中', class: 'warning' },
+                'pending': { text: '待审核', class: 'info' },
+                'suspended': { text: '已停业', class: 'error' }
+            };
+            return statusMap[value] || statusMap['active'];
+        }
+
+        function getCategoryText(value) {
+            const categoryMap = {
+                'chinese': '中式快餐',
+                'western': '西式快餐',
+                'hotpot': '火锅烧烤',
+                'dessert': '甜品饮品',
+                'japanese': '日韩料理'
+            };
+            return categoryMap[value] || value;
+        }
+
+        function getCategoryValue(text) {
+            const categoryMap = {
+                '中式快餐': 'chinese',
+                '西式快餐': 'western',
+                '火锅烧烤': 'hotpot',
+                '甜品饮品': 'dessert',
+                '日韩料理': 'japanese'
+            };
+            return categoryMap[text] || 'chinese';
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('merchantModal');
+            if (event.target === modal) {
+                closeMerchantModal();
+            }
+        }
+    </script>
+</body>
+</html>
