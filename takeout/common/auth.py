@@ -87,3 +87,48 @@ def merchant_login_required(view):
         return view(request, *args, **kwargs)
 
     return wrapper
+
+
+# ---- 骑手端 Token（独立盐值）----
+
+RIDER_SALT = 'takeout-rider-token'
+
+
+def make_rider_token(auth_user):
+    return signing.dumps({'uid': auth_user.id}, salt=RIDER_SALT)
+
+
+def _get_rider_user(request):
+    auth = request.META.get('HTTP_AUTHORIZATION', '')
+    if not auth.startswith('Bearer '):
+        return None
+    token = auth[len('Bearer '):].strip()
+    try:
+        payload = signing.loads(token, salt=RIDER_SALT, max_age=TOKEN_MAX_AGE)
+    except Exception:
+        return None
+    return User.objects.filter(id=payload.get('uid')).first()
+
+
+def rider_login_required(view):
+    """要求骑手登录；把 rider 注入到 request，未登录返回 401（骑手侧 fail 格式）。"""
+
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        from delivery.models import Rider
+
+        auth_user = _get_rider_user(request)
+        rider = None
+        if auth_user is not None:
+            rider = Rider.objects.filter(auth_user=auth_user).first()
+        if rider is None:
+            return JsonResponse(
+                {'code': 'A0401', 'info': '未登录或登录已过期', 'data': None},
+                status=401,
+                json_dumps_params={'ensure_ascii': False},
+            )
+        request.user = auth_user
+        request.rider = rider
+        return view(request, *args, **kwargs)
+
+    return wrapper

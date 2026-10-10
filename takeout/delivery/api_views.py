@@ -5,10 +5,12 @@
 
 from datetime import date
 
+from django.contrib.auth import authenticate
 from django.db.models import Q
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
+from common.auth import make_rider_token, rider_login_required
 from common.response import fail, ok
 from common.utils import get_json
 from order.models import OrderInfo, OrderStatusLog
@@ -68,19 +70,40 @@ def task_to_dict(o):
     }
 
 
+@require_http_methods(['POST'])
+def login(request):
+    """骑手登录：账号密码，账号须绑定骑手档案。"""
+    data = get_json(request)
+    username = (data.get('username') or '').strip()
+    password = (data.get('password') or '').strip()
+    user = authenticate(username=username, password=password)
+    if user is None:
+        return fail('用户名或密码错误')
+    rider = Rider.objects.filter(auth_user=user).first()
+    if rider is None:
+        return fail('该账号不是骑手账号')
+    return ok({
+        'token': make_rider_token(user),
+        'riderId': rider.id,
+        'name': rider.name,
+        'phone': rider.phone,
+    })
+
+
 @require_http_methods(['GET'])
+@rider_login_required
 def rider_info(request, rider_id):
-    r = Rider.objects.filter(id=rider_id).first()
-    if not r:
-        return fail('骑手不存在')
-    return ok(rider_to_dict(r))
+    if rider_id != request.rider.id:
+        return fail('无权查看其他骑手信息', status=403)
+    return ok(rider_to_dict(request.rider))
 
 
 @require_http_methods(['POST'])
+@rider_login_required
 def rider_status(request, rider_id):
-    r = Rider.objects.filter(id=rider_id).first()
-    if not r:
-        return fail('骑手不存在')
+    if rider_id != request.rider.id:
+        return fail('无权修改其他骑手状态', status=403)
+    r = request.rider
     work_status = int(request.GET.get('workStatus') or 1)
     r.status = 0 if work_status in (1, 2) else 1
     r.save()
@@ -88,10 +111,14 @@ def rider_status(request, rider_id):
 
 
 @require_http_methods(['GET'])
+@rider_login_required
 def rider_tasks(request, rider_id):
+    if rider_id != request.rider.id:
+        return fail('无权查看其他骑手任务', status=403)
+    r_id = request.rider.id
     qs = OrderInfo.objects.filter(
         Q(status=OrderInfo.STATUS_PENDING_ACCEPT)
-        | Q(rider_id=rider_id, status__in=[
+        | Q(rider_id=r_id, status__in=[
             OrderInfo.STATUS_PENDING_ACCEPT,
             OrderInfo.STATUS_DELIVERING,
             OrderInfo.STATUS_FINISHED,
@@ -101,6 +128,7 @@ def rider_tasks(request, rider_id):
 
 
 @require_http_methods(['GET'])
+@rider_login_required
 def pending_tasks(request):
     qs = OrderInfo.objects.filter(
         status=OrderInfo.STATUS_PENDING_ACCEPT, rider__isnull=True
@@ -109,6 +137,7 @@ def pending_tasks(request):
 
 
 @require_http_methods(['GET'])
+@rider_login_required
 def task_detail(request, task_id):
     o = OrderInfo.objects.filter(id=task_id).first()
     if not o:
@@ -117,15 +146,14 @@ def task_detail(request, task_id):
 
 
 @require_http_methods(['POST'])
+@rider_login_required
 def accept_task(request, task_id):
     o = OrderInfo.objects.filter(id=task_id).first()
     if not o:
         return fail('任务不存在')
     if o.status != OrderInfo.STATUS_PENDING_ACCEPT:
         return fail('订单状态不允许接单')
-    rider = Rider.objects.filter(id=request.GET.get('riderId')).first()
-    if rider is None:
-        return fail('骑手不存在')
+    rider = request.rider
     if o.rider_id and o.rider_id != rider.id:
         return fail('订单已被其他骑手接单')
     o.rider = rider
@@ -134,15 +162,19 @@ def accept_task(request, task_id):
 
 
 @require_http_methods(['POST'])
+@rider_login_required
 def reject_task(request, task_id):
     return ok(True, info='已拒单')
 
 
 @require_http_methods(['POST'])
+@rider_login_required
 def update_task_status(request, task_id):
     o = OrderInfo.objects.filter(id=task_id).first()
     if not o:
         return fail('任务不存在')
+    if o.rider_id != request.rider.id:
+        return fail('无权操作其他骑手的订单', status=403)
     data = get_json(request)
     status = data.get('status')
     from_status = o.status
@@ -165,8 +197,9 @@ def update_task_status(request, task_id):
 
 
 @require_http_methods(['GET'])
+@rider_login_required
 def statistics(request):
-    rider_id = request.GET.get('riderId')
+    rider_id = request.rider.id
     today = date.today()
     done = OrderInfo.objects.filter(
         rider_id=rider_id, status=OrderInfo.STATUS_FINISHED, finish_time__date=today

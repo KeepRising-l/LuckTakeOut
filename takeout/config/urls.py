@@ -46,6 +46,7 @@ api_patterns = [
     path('orders/<int:pk>/pay', order_views.order_pay),
 
     # 骑手端（配送）
+    path('delivery/login', delivery_api.login),
     path('delivery/riders/<int:rider_id>', delivery_api.rider_info),
     path('delivery/riders/<int:rider_id>/status', delivery_api.rider_status),
     path('delivery/riders/<int:rider_id>/tasks', delivery_api.rider_tasks),
