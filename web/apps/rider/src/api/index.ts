@@ -21,12 +21,9 @@ export interface RiderDetail {
   id: number
   name: string
   phone: string
-  rating: number | string
   todayDeliveryCount: number
-  todayEarnings: number
   /** 1 在线 2 离线 */
   workStatus: number
-  location: string
 }
 
 export interface OrderItem {
@@ -45,8 +42,6 @@ export interface DeliveryTask {
   deliveryAddress: string
   contactName: string
   contactPhone: string
-  distance: number | string
-  estimatedTime: number | string
   deliveryFee: number
   totalAmount: number
   status: TaskStatus
@@ -61,7 +56,6 @@ export interface TaskPage {
 
 export interface Statistics {
   todayDeliveryCount: number
-  todayEarnings: number
   totalDeliveryCount: number
 }
 
@@ -85,7 +79,7 @@ export const api = {
   getTask: (id: number | string) => http.get<unknown, DeliveryTask>(`/delivery/tasks/${id}`),
   acceptTask: (id: number | string) => http.post<unknown, unknown>(`/delivery/tasks/${id}/accept`),
   rejectTask: (id: number | string) => http.post<unknown, unknown>(`/delivery/tasks/${id}/reject`),
-  /** status: 4 取餐中 | 5 配送中 | 6 已送达 */
+  /** status: 6 已送达（接单即进入配送中，本期不设中间态） */
   updateStatus: (id: number | string, status: number) =>
     http.post<unknown, unknown>(`/delivery/tasks/${id}/status`, { status }),
   getStatistics: () => http.get<unknown, Statistics>('/delivery/statistics'),

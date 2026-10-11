@@ -13,7 +13,7 @@ const cells = [
   { title: '地址管理', icon: 'location-o', to: '/addresses' },
   { title: '我的订单', icon: 'orders-o', to: '/orders' },
   { title: '购物车', icon: 'cart-o', to: '/cart' },
-  { title: 'AI 客服', icon: 'chat-o', to: '/ai' },
+  { title: 'AI 点餐助手', icon: 'chat-o', to: '/ai' },
 ]
 
 async function logout() {

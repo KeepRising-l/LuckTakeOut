@@ -12,7 +12,7 @@ from django.db.models import Q
 from merchant.models import MerchantInfo
 from order.models import OrderInfo, OrderStatusLog, UrgeRecord
 from platform_ops.models import Notification, OperationLog
-from product.models import ProductInfo, ProductSku
+from product.models import ProductInfo
 from review.models import Review
 
 from .models import OrderDraft, OrderDraftItem
@@ -46,7 +46,6 @@ TOOL_SCHEMAS = [
         'merchant_id': {'type': 'integer'},
         'keyword': {'type': 'string'},
     }, ['merchant_id']),
-    _fn('get_item_specs', '获取某个菜品的规格与价格', {'product_id': {'type': 'integer'}}, ['product_id']),
     _fn('validate_draft', '后端校验草稿：价格、库存、商户归属', {
         'merchant_id': {'type': 'integer'},
         'items': {
@@ -55,7 +54,6 @@ TOOL_SCHEMAS = [
                 'type': 'object',
                 'properties': {
                     'product_id': {'type': 'integer'},
-                    'sku_id': {'type': 'integer'},
                     'quantity': {'type': 'integer'},
                 },
             },
@@ -93,7 +91,7 @@ def _resolve_order(session, order_id):
 
 def _audit(session, action, target_type, target_id, detail, result='success'):
     OperationLog.objects.create(
-        actor_id=session.cs_user_id, actor_role='ai',
+        actor_id=session.customer_id, actor_role='ai',
         action=action, target_type=target_type, target_id=target_id,
         detail=detail, result=result,
     )
@@ -122,19 +120,6 @@ def t_search_menu(session, args):
     return result
 
 
-def t_get_item_specs(session, args):
-    product_id = args.get('product_id')
-    p = ProductInfo.objects.filter(id=product_id).first()
-    if not p:
-        return {'skus': [], 'error': '菜品不存在'}
-    skus = [{'id': s.id, 'spec_text': s.spec_text, 'price': float(s.price), 'stock': s.stock}
-            for s in p.skus.all()]
-    if not skus:
-        skus = [{'id': None, 'spec_text': '默认', 'price': float(p.price), 'stock': p.stock}]
-    _audit(session, 'get_item_specs', 'product', product_id, json.dumps(args, ensure_ascii=False))
-    return {'product_id': p.id, 'name': p.name, 'skus': skus}
-
-
 def t_validate_draft(session, args):
     """后端重校验：以数据库中的价格、库存、商户归属为准。"""
     merchant = MerchantInfo.objects.filter(id=args.get('merchant_id'), status=20).first()
@@ -154,8 +139,7 @@ def t_validate_draft(session, args):
         amount = p.price * qty
         total += amount
         items.append({
-            'product_id': p.id, 'sku_id': it.get('sku_id'),
-            'product_name': p.name, 'price': float(p.price),
+            'product_id': p.id, 'product_name': p.name, 'price': float(p.price),
             'quantity': qty, 'amount': float(amount),
         })
     if not items:
@@ -183,24 +167,22 @@ def t_create_draft(session, args):
             continue
         qty = int(it.get('quantity') or 1)
         total += p.price * qty
-        sku = ProductSku.objects.filter(id=it.get('sku_id')).first()
-        resolved.append((p, sku, qty))
+        resolved.append((p, qty))
 
     draft = OrderDraft.objects.create(
         session=session, customer=session.customer, merchant=merchant,
         address=address, total_amount=total, status=OrderDraft.STATUS_PENDING,
     )
-    for p, sku, qty in resolved:
+    for p, qty in resolved:
         OrderDraftItem.objects.create(
-            draft=draft, product=p, sku=sku,
-            spec_text=(sku.spec_text if sku else ''), quantity=qty, price_snapshot=p.price,
+            draft=draft, product=p, quantity=qty, price_snapshot=p.price,
         )
     result = {
         'draftId': draft.id,
         'merchantName': merchant.name,
         'total': float(total),
         'address': (address.detail if address else ''),
-        'items': [{'name': p.name, 'quantity': q, 'price': float(p.price)} for p, _, q in resolved],
+        'items': [{'name': p.name, 'quantity': q, 'price': float(p.price)} for p, q in resolved],
     }
     _audit(session, 'create_draft', 'order_draft', draft.id, json.dumps(result, ensure_ascii=False))
     return result
@@ -224,7 +206,7 @@ def t_urge_order(session, args):
     if not o:
         return {'error': '没有找到订单'}
     content = args.get('content') or '顾客催单'
-    UrgeRecord.objects.create(order=o, operator_id=session.cs_user_id, operator_role='ai', content=content)
+    UrgeRecord.objects.create(order=o, operator_id=session.customer_id, operator_role='ai', content=content)
     Notification.objects.create(
         to_user=o.merchant.auth_user, title='订单催单提醒',
         content=f'订单 {o.order_no}：{content}', type=Notification.TYPE_URGE,
@@ -257,7 +239,6 @@ def t_submit_review(session, args):
 DISPATCH = {
     'search_merchant': t_search_merchant,
     'search_menu': t_search_menu,
-    'get_item_specs': t_get_item_specs,
     'validate_draft': t_validate_draft,
     'create_draft': t_create_draft,
     'get_order_status': t_get_order_status,

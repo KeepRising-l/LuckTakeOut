@@ -5,7 +5,7 @@ from decimal import Decimal, InvalidOperation
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_http_methods
 
-from common.auth import merchant_login_required
+from common.auth import merchant_approved_required
 from common.response import fail_m, ok_m
 from common.utils import get_json
 
@@ -45,14 +45,14 @@ def category_to_dict(c):
 # ---- 分类 ----
 
 @require_http_methods(['GET'])
-@merchant_login_required
+@merchant_approved_required
 def category_list(request):
     qs = ProductCategory.objects.filter(merchant=request.merchant).order_by('sort', 'id')
     return ok_m([category_to_dict(c) for c in qs])
 
 
 @require_http_methods(['POST'])
-@merchant_login_required
+@merchant_approved_required
 def category_create(request):
     data = get_json(request)
     name = (data.get('name') or '').strip()
@@ -67,7 +67,7 @@ def category_create(request):
 
 
 @require_http_methods(['PUT', 'POST'])
-@merchant_login_required
+@merchant_approved_required
 def category_update(request, pk):
     c = ProductCategory.objects.filter(id=pk, merchant=request.merchant).first()
     if not c:
@@ -82,7 +82,7 @@ def category_update(request, pk):
 
 
 @require_http_methods(['DELETE', 'POST'])
-@merchant_login_required
+@merchant_approved_required
 def category_delete(request, pk):
     ProductCategory.objects.filter(id=pk, merchant=request.merchant).delete()
     return ok_m(True, message='分类已删除')
@@ -91,7 +91,7 @@ def category_delete(request, pk):
 # ---- 菜品 ----
 
 @require_http_methods(['GET'])
-@merchant_login_required
+@merchant_approved_required
 def product_list(request):
     qs = ProductInfo.objects.filter(merchant=request.merchant).order_by('-id')
 
@@ -122,7 +122,7 @@ def product_list(request):
 
 
 @require_http_methods(['POST'])
-@merchant_login_required
+@merchant_approved_required
 def product_create(request):
     data = get_json(request)
     name = (data.get('name') or '').strip()
@@ -146,7 +146,7 @@ def product_create(request):
 
 
 @require_http_methods(['GET'])
-@merchant_login_required
+@merchant_approved_required
 def product_detail(request, pk):
     p = ProductInfo.objects.filter(id=pk, merchant=request.merchant).first()
     if not p:
@@ -155,7 +155,7 @@ def product_detail(request, pk):
 
 
 @require_http_methods(['PUT', 'POST'])
-@merchant_login_required
+@merchant_approved_required
 def product_update(request, pk):
     p = ProductInfo.objects.filter(id=pk, merchant=request.merchant).first()
     if not p:
@@ -181,14 +181,14 @@ def product_update(request, pk):
 
 
 @require_http_methods(['DELETE', 'POST'])
-@merchant_login_required
+@merchant_approved_required
 def product_delete(request, pk):
     ProductInfo.objects.filter(id=pk, merchant=request.merchant).delete()
     return ok_m(True, message='菜品已删除')
 
 
 @require_http_methods(['PUT', 'POST'])
-@merchant_login_required
+@merchant_approved_required
 def product_update_status(request, pk):
     p = ProductInfo.objects.filter(id=pk, merchant=request.merchant).first()
     if not p:
@@ -202,7 +202,7 @@ def product_update_status(request, pk):
 
 
 @require_http_methods(['PUT', 'POST'])
-@merchant_login_required
+@merchant_approved_required
 def product_update_stock(request, pk):
     p = ProductInfo.objects.filter(id=pk, merchant=request.merchant).first()
     if not p:

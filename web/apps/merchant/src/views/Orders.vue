@@ -10,12 +10,12 @@ import { money, datetime } from '@takeout/shared'
 
 const tabs: { label: string; value: '' | OrderStatus }[] = [
   { label: '全部', value: '' },
-  { label: '待接单', value: 'PENDING' },
-  { label: '备餐中', value: 'CONFIRMED' },
-  { label: '待取餐', value: 'READY' },
-  { label: '配送中', value: 'DELIVERING' },
-  { label: '已完成', value: 'COMPLETED' },
-  { label: '已取消', value: 'CANCELLED' },
+  { label: '待支付', value: 10 },
+  { label: '已支付', value: 20 },
+  { label: '待接单', value: 30 },
+  { label: '配送中', value: 40 },
+  { label: '已完成', value: 50 },
+  { label: '已取消', value: 60 },
 ]
 
 const activeStatus = ref<'' | OrderStatus>('')
@@ -85,7 +85,7 @@ async function onCancel(row: Order) {
   }
 }
 
-const canCancel = (s: string) => ['PENDING', 'CONFIRMED', 'READY'].includes(s)
+const canCancel = (s: number) => [10, 20, 30].includes(s)
 
 onMounted(load)
 </script>

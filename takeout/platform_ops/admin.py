@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Notification, OperationLog, SystemConfig
+from .models import Notification, OperationLog
 
 admin.site.site_header = '外卖平台 · 运营后台'
 admin.site.site_title = '外卖平台运营后台'
@@ -22,9 +22,3 @@ class NotificationAdmin(admin.ModelAdmin):
     list_display = ('id', 'to_user', 'title', 'type', 'is_read', 'create_time')
     list_filter = ('type', 'is_read')
     search_fields = ('title',)
-
-
-@admin.register(SystemConfig)
-class SystemConfigAdmin(admin.ModelAdmin):
-    list_display = ('id', 'config_key', 'config_value', 'remark')
-    search_fields = ('config_key',)

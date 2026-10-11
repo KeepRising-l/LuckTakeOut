@@ -1,10 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { storage } from '@takeout/shared'
+import { STATUS_APPROVED, type MerchantInfo } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', name: 'login', component: () => import('@/views/Login.vue'), meta: { title: '商户登录' } },
+    { path: '/register', name: 'register', component: () => import('@/views/Register.vue'), meta: { title: '商户入驻' } },
+    { path: '/review', name: 'review', component: () => import('@/views/ReviewStatus.vue'), meta: { title: '入驻审核状态' } },
     {
       path: '/',
       component: () => import('@/layout/AdminLayout.vue'),
@@ -21,10 +24,27 @@ const router = createRouter({
   ],
 })
 
+/** 未登录可访问的页面 */
+const PUBLIC_PATHS = ['/login', '/register']
+
+function storedStatus(): number | undefined {
+  return storage.getJSON<MerchantInfo>('merchantInfo')?.status
+}
+
 router.beforeEach((to) => {
   document.title = `${to.meta.title || ''} - 商户中心`
-  if (to.path !== '/login' && !storage.get('merchantToken')) return '/login'
-  if (to.path === '/login' && storage.get('merchantToken')) return '/'
+  const loggedIn = !!storage.get('merchantToken')
+  const approved = storedStatus() === STATUS_APPROVED
+
+  if (PUBLIC_PATHS.includes(to.path)) {
+    if (!loggedIn) return true
+    return approved ? '/' : '/review'
+  }
+  if (!loggedIn) return '/login'
+  // 未通过入驻审核的商户只能查看审核状态（R3）
+  if (!approved && to.path !== '/review') return '/review'
+  if (approved && to.path === '/review') return '/'
+  return true
 })
 
 export default router

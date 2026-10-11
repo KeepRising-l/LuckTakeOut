@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from 'axios'
+import type { AxiosInstance } from 'axios'
 import { createRequest, storage } from '@takeout/shared'
 import { money, datetime } from '@takeout/shared'
 import router from '@/router'
@@ -16,8 +16,8 @@ export const http: AxiosInstance = createRequest({
   },
 })
 
-/** AI 接口无鉴权，独立实例（不触发 401 跳转） */
-export const aiHttp: AxiosInstance = axios.create({ baseURL: '/api/v1', timeout: 30000 })
+/** AI 助手接口需登录：与其它请求共用令牌与 401 处理，仅把超时放宽 */
+const AI_TIMEOUT = { timeout: 60000 }
 
 export interface UserInfo {
   id?: number
@@ -52,12 +52,8 @@ export interface Merchant {
   avatar: string
   logo?: string
   description: string
-  rating: number
-  monthlySales: number
-  tags: string[]
+  rating: number | null
   deliveryFee: number
-  deliveryTime: number
-  distance: number
   address: string
 }
 
@@ -173,27 +169,19 @@ export const orderApi = {
 }
 
 export const aiApi = {
-  createSession: () => aiHttp.post<never, { code: string; data: AiSession }>('/ai/session', {}),
+  createSession: () => http.post<never, AiSession>('/ai/session', {}, AI_TIMEOUT),
   chat: (sessionId: string, message: string) =>
-    aiHttp.post<never, { code: string; data: { reply: string; draft?: AiDraft } }>('/ai/chat', {
-      sessionId,
-      message,
-    }),
+    http.post<never, { reply: string; draft?: AiDraft }>('/ai/chat', { sessionId, message }, AI_TIMEOUT),
   confirmDraft: (draftId: string | number) =>
-    aiHttp.post<never, { code: string; data: { orderId: number; orderNo: string; actualAmount: number } }>(
+    http.post<never, { orderId: number; orderNo: string; actualAmount: number }>(
       `/ai/drafts/${draftId}/confirm`,
+      {},
+      AI_TIMEOUT,
     ),
 }
 
-/** 状态码 → 文案 */
-export const ORDER_STATUS: Record<number, string> = {
-  1: '待支付',
-  2: '已支付',
-  3: '待接单',
-  5: '配送中',
-  8: '已完成',
-  9: '已取消',
-}
+/** 状态文案：与三端共用的取值口径一致 */
+export { ORDER_STATUS } from '@takeout/shared'
 
 /** 商品图兜底：后端可能用 image/mainImage/productImage 任意字段 */
 export function pickImage(obj: { image?: string; mainImage?: string; productImage?: string; avatar?: string; logo?: string }): string {

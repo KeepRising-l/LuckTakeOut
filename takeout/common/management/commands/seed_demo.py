@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand
 
 from delivery.models import Rider
 from merchant.models import MerchantCategory, MerchantInfo
-from product.models import ProductCategory, ProductInfo, ProductSku, ProductSpec
+from product.models import ProductCategory, ProductInfo
 from user.models import UserAddress, UserInfo
 
 
@@ -45,16 +45,10 @@ class Command(BaseCommand):
                 m.save()
             pc, _ = ProductCategory.objects.get_or_create(merchant=m, name='热销')
             for pname, price, desc in products:
-                p, _ = ProductInfo.objects.get_or_create(
+                ProductInfo.objects.get_or_create(
                     merchant=m, name=pname,
                     defaults=dict(category=pc, price=Decimal(price), stock=100,
                                   description=desc, status=10),
-                )
-                ProductSpec.objects.get_or_create(
-                    product=p, name='规格', defaults=dict(options='标准'),
-                )
-                ProductSku.objects.get_or_create(
-                    product=p, spec_text='标准', defaults=dict(price=p.price, stock=100),
                 )
 
         r_auth, created = User.objects.get_or_create(username='rider1')

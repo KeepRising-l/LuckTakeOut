@@ -36,7 +36,8 @@ class OrderInfo(BaseModel):
         related_name='orders', verbose_name='商户',
     )
     address_snapshot = models.CharField('收货地址快照', max_length=300)
-    total_amount = models.DecimalField('商品总额', max_digits=10, decimal_places=2, default=0)
+    total_amount = models.DecimalField('商品金额合计', max_digits=10, decimal_places=2, default=0)
+    delivery_fee = models.DecimalField('配送费', max_digits=10, decimal_places=2, default=0)
     pay_amount = models.DecimalField('实付金额', max_digits=10, decimal_places=2, default=0)
     status = models.SmallIntegerField('状态', choices=STATUS_CHOICES, default=STATUS_PENDING_PAY)
     rider = models.ForeignKey(
@@ -71,12 +72,7 @@ class OrderItem(BaseModel):
         'product.ProductInfo', on_delete=models.PROTECT,
         related_name='order_items', verbose_name='菜品',
     )
-    sku = models.ForeignKey(
-        'product.ProductSku', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='order_items', verbose_name='规格',
-    )
     product_name = models.CharField('菜品名称快照', max_length=100)
-    spec_text = models.CharField('规格快照', max_length=100, blank=True, default='')
     price = models.DecimalField('单价快照', max_digits=10, decimal_places=2)
     quantity = models.IntegerField('数量', default=1)
     amount = models.DecimalField('小计', max_digits=10, decimal_places=2)

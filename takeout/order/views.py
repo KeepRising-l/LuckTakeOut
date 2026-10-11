@@ -3,6 +3,7 @@
 import uuid
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
@@ -16,13 +17,7 @@ from product.models import ProductInfo
 from user.models import UserAddress, UserInfo
 
 from .models import OrderInfo, OrderItem, OrderStatusLog
-
-# 内部状态码 <-> 前端状态码（1 待付款 / 2 已付款 / 3 已接单 / 4 制作中 / 5 配送中 / 8 已完成 / 9 已取消 / 10 退款中）
-STATUS_TO_API = {10: 1, 20: 2, 30: 3, 40: 5, 50: 8, 60: 9, 70: 10, 80: 10}
-API_TO_STATUS = {
-    1: [10], 2: [20], 3: [30], 4: [30],
-    5: [40], 6: [40], 7: [40], 8: [50], 9: [60], 10: [70, 80],
-}
+from .state import change_status
 
 
 def order_to_dict(o):
@@ -30,25 +25,22 @@ def order_to_dict(o):
         {
             'productId': it.product_id,
             'productName': it.product_name,
-            'skuName': it.spec_text,
             'price': float(it.price),
             'quantity': it.quantity,
             'amount': float(it.amount),
         }
         for it in o.items.all()
     ]
-    total = float(o.total_amount)
-    actual = float(o.pay_amount)
     return {
         'id': o.id,
         'orderNo': o.order_no,
         'merchantId': o.merchant_id,
         'merchantName': o.merchant.name if o.merchant else '',
-        'status': STATUS_TO_API.get(o.status, 1),
-        'productAmount': total,
-        'deliveryFee': round(actual - total, 2) if actual > total else 0.0,
+        'status': o.status,
+        'productAmount': float(o.total_amount),
+        'deliveryFee': float(o.delivery_fee),
         'discountAmount': 0.0,
-        'actualAmount': actual,
+        'actualAmount': float(o.pay_amount),
         'address': o.address_snapshot,
         'remark': o.remark,
         'createTime': o.create_time.strftime('%Y-%m-%d %H:%M:%S') if o.create_time else '',
@@ -72,9 +64,12 @@ def create_order(request):
     if not items:
         return fail('购物车为空')
 
+    address_id = data.get('addressId')
     address = None
-    if data.get('addressId'):
-        address = UserAddress.objects.filter(id=data['addressId'], user=user_info).first()
+    if address_id:
+        address = UserAddress.objects.filter(id=address_id, user=user_info).first()
+    if address is None:
+        return fail('请选择收货地址')
 
     # 后端重新校验价格与库存（不信任前端传入的价格）
     total = Decimal('0')
@@ -94,7 +89,7 @@ def create_order(request):
         total += amount
         resolved.append((product, it, product.price, qty, amount))
 
-    delivery_fee = Decimal(str(data.get('deliveryFee') or 0))
+    delivery_fee = settings.DELIVERY_FEE
     pay_amount = total + delivery_fee
 
     with transaction.atomic():
@@ -102,8 +97,9 @@ def create_order(request):
             order_no=uuid.uuid4().hex[:20],
             user=user_info,
             merchant=merchant,
-            address_snapshot=(address.detail if address else '') or '',
+            address_snapshot=address.detail,
             total_amount=total,
+            delivery_fee=delivery_fee,
             pay_amount=pay_amount,
             status=OrderInfo.STATUS_PENDING_PAY,
             remark=data.get('remark') or '',
@@ -113,7 +109,6 @@ def create_order(request):
                 order=order,
                 product=product,
                 product_name=product.name,
-                spec_text=it.get('skuName') or '',
                 price=price,
                 quantity=qty,
                 amount=amount,
@@ -130,7 +125,10 @@ def create_order(request):
 @require_http_methods(['GET'])
 @api_login_required
 def order_detail(request, pk):
-    o = OrderInfo.objects.filter(id=pk).first()
+    user_info = UserInfo.objects.filter(auth_user=request.user).first()
+    if not user_info:
+        return fail('用户不存在', status=401)
+    o = OrderInfo.objects.filter(id=pk, user=user_info).first()
     if not o:
         return fail('订单不存在')
     return ok(order_to_dict(o))
@@ -144,9 +142,7 @@ def order_list(request):
     status = request.GET.get('status')
     if status:
         try:
-            codes = API_TO_STATUS.get(int(status), [])
-            if codes:
-                qs = qs.filter(status__in=codes)
+            qs = qs.filter(status=int(status))
         except ValueError:
             pass
     return ok([order_to_dict(o) for o in qs[:50]])
@@ -155,20 +151,23 @@ def order_list(request):
 @require_http_methods(['POST'])
 @api_login_required
 def order_pay(request, pk):
-    o = OrderInfo.objects.filter(id=pk).first()
+    user_info = UserInfo.objects.filter(auth_user=request.user).first()
+    if not user_info:
+        return fail('用户不存在', status=401)
+    o = OrderInfo.objects.filter(id=pk, user=user_info).first()
     if not o:
         return fail('订单不存在')
     if o.status != OrderInfo.STATUS_PENDING_PAY:
         return fail('当前订单状态不允许支付')
+    now = timezone.now()
     with transaction.atomic():
-        from_status = o.status
-        o.status = OrderInfo.STATUS_PAID
-        o.pay_time = timezone.now()
-        o.save()
-        OrderStatusLog.objects.create(
-            order=o, from_status=from_status, to_status=o.status, operator_role='customer',
+        changed, message = change_status(
+            o, OrderInfo.STATUS_PAID, operator_role='customer',
+            operator_id=user_info.id, pay_time=now,
         )
-        PaymentRecord.objects.filter(order=o).update(status=20, pay_time=timezone.now())
+        if not changed:
+            return fail(message)
+        PaymentRecord.objects.filter(order=o).update(status=20, pay_time=now)
     return ok(order_to_dict(o))
 
 
@@ -184,10 +183,9 @@ def order_cancel(request, pk):
         return fail('订单不存在')
     if o.status not in (OrderInfo.STATUS_PENDING_PAY, OrderInfo.STATUS_PAID):
         return fail('当前订单状态不允许取消')
-    from_status = o.status
-    o.status = OrderInfo.STATUS_CANCELED
-    o.save()
-    OrderStatusLog.objects.create(
-        order=o, from_status=from_status, to_status=o.status, operator_role='customer',
+    changed, message = change_status(
+        o, OrderInfo.STATUS_CANCELED, operator_role='customer', operator_id=user_info.id,
     )
+    if not changed:
+        return fail(message)
     return ok(order_to_dict(o), info='订单已取消')

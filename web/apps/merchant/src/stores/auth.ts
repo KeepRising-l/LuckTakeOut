@@ -6,7 +6,12 @@ export interface MerchantInfo {
   merchantId?: number
   merchantName?: string
   avatar?: string
+  /** 入驻审核状态：10 待审核 / 20 已通过 / 30 已驳回 */
+  status?: number
 }
+
+/** 入驻审核已通过 */
+export const STATUS_APPROVED = 20
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string>(storage.get('merchantToken') || '')
@@ -24,6 +29,11 @@ export const useAuthStore = defineStore('auth', () => {
     storage.setJSON('merchantInfo', info.value)
   }
 
+  function setStatus(status: number) {
+    info.value = { ...info.value, status }
+    storage.setJSON('merchantInfo', info.value)
+  }
+
   function logout() {
     token.value = ''
     info.value = {}
@@ -31,5 +41,5 @@ export const useAuthStore = defineStore('auth', () => {
     storage.remove('merchantInfo')
   }
 
-  return { token, info, setAuth, setAvatar, logout }
+  return { token, info, setAuth, setAvatar, setStatus, logout }
 })

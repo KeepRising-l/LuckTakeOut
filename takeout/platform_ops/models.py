@@ -45,19 +45,3 @@ class Notification(BaseModel):
         db_table = 'notification'
         verbose_name = '站内信'
         verbose_name_plural = verbose_name
-
-
-class SystemConfig(BaseModel):
-    """系统配置"""
-
-    config_key = models.CharField('配置键', max_length=50, unique=True)
-    config_value = models.CharField('配置值', max_length=255, blank=True, default='')
-    remark = models.CharField('备注', max_length=255, blank=True, default='')
-
-    class Meta:
-        db_table = 'system_config'
-        verbose_name = '系统配置'
-        verbose_name_plural = verbose_name
-
-    def __str__(self):
-        return self.config_key

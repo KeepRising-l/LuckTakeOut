@@ -1,18 +1,13 @@
-from django.conf import settings
 from django.db import models
 
 from common.models import BaseModel
 
 
 class ChatSession(BaseModel):
-    """客服会话"""
+    """AI 点餐助手会话（作用域为发起会话的顾客）"""
 
     STATUS_CHOICES = ((10, '进行中'), (20, '已结束'))
 
-    cs_user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='cs_sessions', verbose_name='客服',
-    )
     customer = models.ForeignKey(
         'user.UserInfo', on_delete=models.CASCADE,
         related_name='chat_sessions', verbose_name='顾客',
@@ -103,11 +98,6 @@ class OrderDraftItem(BaseModel):
         'product.ProductInfo', on_delete=models.PROTECT,
         related_name='draft_items', verbose_name='菜品',
     )
-    sku = models.ForeignKey(
-        'product.ProductSku', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='draft_items', verbose_name='规格',
-    )
-    spec_text = models.CharField('规格', max_length=100, blank=True, default='')
     quantity = models.IntegerField('数量', default=1)
     price_snapshot = models.DecimalField('单价快照', max_digits=10, decimal_places=2)
 

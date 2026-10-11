@@ -10,7 +10,9 @@ from merchant.models import MerchantInfo
 from order.models import OrderInfo
 from user.models import UserInfo
 
-MERCHANT_STATUS_TEXT = {10: '待审核', 20: '营业中', 30: '已停业'}
+from .models import OperationLog
+
+MERCHANT_STATUS_TEXT = {10: '待审核', 20: '已通过', 30: '已驳回'}
 
 
 def merchant_to_dict(m):
@@ -51,6 +53,7 @@ def merchant_audit(request, pk):
         return fail('商户不存在')
     data = get_json(request)
     action = data.get('action') or data.get('status')
+    before = m.status
     if action in ('approve', 'active', 20, '20'):
         m.status = 20
     elif action in ('reject', 'blocked', 30, '30'):
@@ -58,6 +61,11 @@ def merchant_audit(request, pk):
     else:
         return fail('未知的审核动作')
     m.save()
+    OperationLog.objects.create(
+        actor_id=request.user.id, actor_role='platform',
+        action='merchant_audit', target_type='merchant', target_id=m.id,
+        detail=f'status {before} -> {m.status}', result='success',
+    )
     return ok(merchant_to_dict(m), info='审核完成')
 
 

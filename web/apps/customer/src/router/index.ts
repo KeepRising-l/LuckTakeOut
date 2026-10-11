@@ -15,7 +15,7 @@ const router = createRouter({
     { path: '/orders/:id', component: () => import('@/views/OrderDetail.vue'), meta: { title: '订单详情' } },
     { path: '/addresses', component: () => import('@/views/Addresses.vue'), meta: { title: '地址管理' } },
     { path: '/profile', component: () => import('@/views/Profile.vue'), meta: { title: '我的', tabbar: true } },
-    { path: '/ai', component: () => import('@/views/AiChat.vue'), meta: { title: 'AI 客服' } },
+    { path: '/ai', component: () => import('@/views/AiChat.vue'), meta: { title: 'AI 点餐助手' } },
   ],
   scrollBehavior: () => ({ top: 0 }),
 })

@@ -62,8 +62,8 @@ onMounted(() => {
         </van-image>
         <div class="m-info">
           <div class="m-name">{{ m.name }}</div>
-          <div class="m-sub">{{ m.rating }} 分 · 月售 {{ m.monthlySales }}</div>
-          <div class="m-sub">配送费 ¥{{ m.deliveryFee }} · {{ m.deliveryTime }}分钟</div>
+          <div class="m-sub">{{ m.rating != null ? `${m.rating} 分` : '暂无评分' }}</div>
+          <div class="m-sub">配送费 ¥{{ m.deliveryFee }}</div>
         </div>
       </div>
       <van-empty v-if="!loading && !merchants.length" description="没有找到相关商家" />

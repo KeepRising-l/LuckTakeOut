@@ -91,7 +91,7 @@ api_patterns = [
     path('platform/statistics', platform_api.statistics),
     path('users', platform_api.users),
 
-    # AI 客服
+    # AI 点餐助手（顾客端功能）
     path('ai/session', ai_api.create_session),
     path('ai/chat', ai_api.chat),
     path('ai/drafts/<int:pk>', ai_api.draft_detail),
@@ -100,6 +100,7 @@ api_patterns = [
 
 # 商户端（merchant-admin）
 merchant_api_patterns = [
+    path('merchant/register', merchant_api.register),
     path('merchant/login', merchant_api.login),
     path('merchant/current', merchant_api.current),
     path('merchant/info', merchant_api.update_info),

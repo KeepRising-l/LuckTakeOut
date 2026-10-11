@@ -13,7 +13,8 @@ from django.views.decorators.http import require_http_methods
 from common.auth import make_rider_token, rider_login_required
 from common.response import fail, ok
 from common.utils import get_json
-from order.models import OrderInfo, OrderStatusLog
+from order.models import OrderInfo
+from order.state import change_status
 
 from .models import Rider
 
@@ -27,11 +28,8 @@ def rider_to_dict(r):
         'id': r.id,
         'name': r.name,
         'phone': r.phone,
-        'rating': 4.9,
         'todayDeliveryCount': done,
-        'todayEarnings': done * 5,
         'workStatus': 1 if r.status == 0 else 2,
-        'location': {'latitude': 39.9042, 'longitude': 116.4074, 'address': '示例市'},
     }
 
 
@@ -51,7 +49,6 @@ def task_to_dict(o):
         {'name': it.product_name, 'quantity': it.quantity, 'price': float(it.price)}
         for it in o.items.all()
     ]
-    fee = float(o.pay_amount) - float(o.total_amount)
     return {
         'id': o.id,
         'orderId': o.id,
@@ -60,9 +57,7 @@ def task_to_dict(o):
         'deliveryAddress': o.address_snapshot,
         'contactName': u.nickname if u else '',
         'contactPhone': u.phone if u else '',
-        'distance': '2.0km',
-        'estimatedTime': '25分钟',
-        'deliveryFee': round(fee, 2) if fee > 0 else 5.0,
+        'deliveryFee': float(o.delivery_fee),
         'totalAmount': float(o.pay_amount),
         'status': _task_status(o),
         'createTime': o.create_time.strftime('%Y-%m-%d %H:%M:%S') if o.create_time else '',
@@ -148,6 +143,7 @@ def task_detail(request, task_id):
 @require_http_methods(['POST'])
 @rider_login_required
 def accept_task(request, task_id):
+    """接单：记录骑手并直接进入配送中（本期不设中间态）。"""
     o = OrderInfo.objects.filter(id=task_id).first()
     if not o:
         return fail('任务不存在')
@@ -156,8 +152,12 @@ def accept_task(request, task_id):
     rider = request.rider
     if o.rider_id and o.rider_id != rider.id:
         return fail('订单已被其他骑手接单')
-    o.rider = rider
-    o.save()
+    changed, message = change_status(
+        o, OrderInfo.STATUS_DELIVERING, operator_role='rider', operator_id=rider.id,
+        rider=rider,
+    )
+    if not changed:
+        return fail(message)
     return ok(task_to_dict(o), info='接单成功')
 
 
@@ -170,29 +170,26 @@ def reject_task(request, task_id):
 @require_http_methods(['POST'])
 @rider_login_required
 def update_task_status(request, task_id):
+    """确认送达：配送中 -> 已完成。"""
     o = OrderInfo.objects.filter(id=task_id).first()
     if not o:
         return fail('任务不存在')
     if o.rider_id != request.rider.id:
         return fail('无权操作其他骑手的订单', status=403)
     data = get_json(request)
-    status = data.get('status')
-    from_status = o.status
-    if status == 4:            # 取餐中：保持待配送
-        pass
-    elif status == 5:          # 配送中
-        o.status = OrderInfo.STATUS_DELIVERING
-    elif status == 6:          # 已送达 -> 已完成
-        o.status = OrderInfo.STATUS_FINISHED
-        o.deliver_time = timezone.now()
-        o.finish_time = timezone.now()
-    else:
+    try:
+        status = int(data.get('status'))
+    except (TypeError, ValueError):
         return fail('未知的配送状态')
-    o.save()
-    if from_status != o.status:
-        OrderStatusLog.objects.create(
-            order=o, from_status=from_status, to_status=o.status, operator_role='rider',
-        )
+    if status != 6:
+        return fail('未知的配送状态')
+    now = timezone.now()
+    changed, message = change_status(
+        o, OrderInfo.STATUS_FINISHED, operator_role='rider', operator_id=request.rider.id,
+        deliver_time=now, finish_time=now,
+    )
+    if not changed:
+        return fail(message)
     return ok(task_to_dict(o), info='状态已更新')
 
 
@@ -206,7 +203,6 @@ def statistics(request):
     ).count()
     return ok({
         'todayDeliveryCount': done,
-        'todayEarnings': done * 5,
         'totalDeliveryCount': OrderInfo.objects.filter(
             rider_id=rider_id, status=OrderInfo.STATUS_FINISHED
         ).count(),

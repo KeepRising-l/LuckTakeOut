@@ -24,9 +24,7 @@ const listRef = ref<HTMLElement>()
 
 async function ensureSession() {
   if (session.value) return session.value
-  const res = await aiApi.createSession()
-  if (res.data?.code !== '00000') throw new Error(res.data?.info || '创建会话失败')
-  session.value = res.data.data
+  session.value = await aiApi.createSession()
   return session.value
 }
 
@@ -45,9 +43,7 @@ async function send(text?: string) {
   sending.value = true
   try {
     const s = await ensureSession()
-    const res = await aiApi.chat(s.sessionId, msg)
-    if (res.data?.code !== '00000') throw new Error(res.data?.info || '请求失败')
-    const { reply, draft } = res.data.data
+    const { reply, draft } = await aiApi.chat(s.sessionId, msg)
     messages.value.push({ role: 'ai', text: reply, draft })
   } catch (e) {
     messages.value.push({ role: 'ai', text: `出错了：${(e as Error).message}` })
@@ -60,12 +56,11 @@ async function send(text?: string) {
 async function confirmDraft(msg: Msg) {
   if (!msg.draft || msg.confirmed) return
   try {
-    const res = await aiApi.confirmDraft(msg.draft.draftId)
-    if (res.data?.code !== '00000') throw new Error(res.data?.info || '确认失败')
+    const r = await aiApi.confirmDraft(msg.draft.draftId)
     msg.confirmed = true
     messages.value.push({
       role: 'ai',
-      text: `下单成功！订单号 ${res.data.data.orderNo}，实付 ¥${money(res.data.data.actualAmount)}，可到「订单」中查看并支付。`,
+      text: `下单成功！订单号 ${r.orderNo}，实付 ¥${money(r.actualAmount)}，可到「订单」中查看并支付。`,
     })
     scrollBottom()
   } catch (e) {
@@ -84,7 +79,7 @@ onMounted(async () => {
 
 <template>
   <div class="ai-page">
-    <van-nav-bar title="AI 客服" left-arrow @click-left="router.back()" />
+    <van-nav-bar title="AI 点餐助手" left-arrow @click-left="router.back()" />
 
     <div ref="listRef" class="msg-list">
       <div v-for="(m, i) in messages" :key="i" class="msg-row" :class="m.role">

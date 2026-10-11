@@ -1,6 +1,8 @@
 """商户域接口：附近商户、详情、分类。"""
 
+from django.conf import settings
 from django.core.paginator import Paginator
+from django.db.models import Avg
 from django.views.decorators.http import require_http_methods
 
 from common.response import fail, ok
@@ -9,6 +11,8 @@ from .models import MerchantInfo
 
 
 def merchant_to_dict(m):
+    """顾客端展示口径：名称、简介、评分（评价均值）、配送费；不含销量与距离。"""
+    rating = getattr(m, 'rating_avg', None)
     return {
         'id': m.id,
         'name': m.name,
@@ -16,13 +20,8 @@ def merchant_to_dict(m):
         'logo': m.logo or '',
         'description': m.description or '',
         'merchantDescription': m.description or '',
-        'rating': 4.5,
-        'monthlySales': 0,
-        'sales': 0,
-        'tags': [],
-        'deliveryFee': 3.0,
-        'deliveryTime': 30,
-        'distance': 1.2,
+        'rating': round(float(rating), 1) if rating is not None else None,
+        'deliveryFee': float(settings.DELIVERY_FEE),
         'address': m.address or '',
         'phone': m.phone or '',
         'status': m.status,
@@ -33,7 +32,7 @@ def merchant_to_dict(m):
 @require_http_methods(['GET'])
 def nearby(request):
     keyword = (request.GET.get('keyword') or '').strip()
-    qs = MerchantInfo.objects.filter(status=20).order_by('id')
+    qs = MerchantInfo.objects.filter(status=20).annotate(rating_avg=Avg('reviews__rating')).order_by('id')
     if keyword:
         qs = qs.filter(name__icontains=keyword)
     try:
@@ -47,7 +46,7 @@ def nearby(request):
 
 @require_http_methods(['GET'])
 def detail(request, pk):
-    m = MerchantInfo.objects.filter(id=pk).first()
+    m = MerchantInfo.objects.filter(id=pk).annotate(rating_avg=Avg('reviews__rating')).first()
     if not m:
         return fail('商家不存在')
     return ok(merchant_to_dict(m))

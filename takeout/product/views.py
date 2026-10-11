@@ -22,9 +22,6 @@ def product_to_dict(p):
         'mainImage': p.image,
         'productImage': p.image,
         'stock': p.stock,
-        'sales': 0,
-        'monthlySales': 0,
-        'tags': [],
         'categoryName': p.category.name if p.category else '',
     }
 

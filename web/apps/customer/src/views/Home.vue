@@ -74,13 +74,13 @@ onMounted(() => {
         <div class="m-info">
           <div class="m-name">{{ m.name }}</div>
           <div class="m-rate">
-            <van-rate :model-value="m.rating" readonly allow-half size="12" color="#ff6d1f" />
-            <span>{{ m.rating }} · 月售 {{ m.monthlySales }}</span>
+            <van-rate :model-value="m.rating ?? 0" readonly allow-half size="12" color="#ff6d1f" />
+            <span>{{ m.rating != null ? `${m.rating} 分` : '暂无评分' }}</span>
           </div>
           <div class="m-desc">{{ m.description }}</div>
           <div class="m-meta">
             <van-tag plain type="warning" v-for="t in m.tags || []" :key="t">{{ t }}</van-tag>
-            <span>配送费 ¥{{ m.deliveryFee }} · {{ m.deliveryTime }}分钟 · {{ m.distance }}km</span>
+            <span>配送费 ¥{{ m.deliveryFee }}</span>
           </div>
         </div>
       </div>

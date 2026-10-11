@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { login } from '@/api'
-import { useAuthStore } from '@/stores/auth'
+import { STATUS_APPROVED, useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -31,9 +31,11 @@ async function submit() {
       merchantId: data.merchantId,
       merchantName: data.merchantName,
       avatar: data.avatar,
+      status: data.status,
     })
     ElMessage.success('登录成功')
-    router.push('/')
+    // 未通过入驻审核的商户登录后只能查看审核状态（R3）
+    router.push(data.status === STATUS_APPROVED ? '/' : '/review')
   } catch (e) {
     ElMessage.error((e as Error).message)
   } finally {
@@ -60,6 +62,9 @@ async function submit() {
         <el-button type="primary" class="login-btn" :loading="loading" @click="submit">登 录</el-button>
         <el-button class="test-btn" text @click="fillTest">测试账号 merchant1 / merchant123</el-button>
       </el-form>
+      <div class="login-foot">
+        还没有账号？<router-link to="/register">商家入驻</router-link>
+      </div>
     </div>
   </div>
 </template>
@@ -97,4 +102,11 @@ async function submit() {
   color: #909399;
   font-size: 12px;
 }
+.login-foot {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 13px;
+  color: #909399;
+}
+.login-foot a { color: #ff6d1f; text-decoration: none; }
 </style>

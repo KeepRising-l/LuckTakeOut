@@ -5,26 +5,12 @@ from datetime import date, timedelta
 from django.db.models import Count, Sum
 from django.views.decorators.http import require_http_methods
 
-from common.auth import merchant_login_required
+from common.auth import merchant_approved_required
 from common.response import fail_m, ok_m
 from common.utils import get_json
 
-from .models import OrderInfo, OrderItem, OrderStatusLog
-
-# 内部状态 <-> 商户端状态字符串
-STATUS_TO_M = {
-    10: 'PENDING', 20: 'PENDING', 30: 'READY', 40: 'DELIVERING',
-    50: 'COMPLETED', 60: 'CANCELLED', 70: 'CANCELLED', 80: 'CANCELLED',
-}
-M_TO_STATUS = {
-    'PENDING': [10, 20], 'CONFIRMED': [30], 'PREPARING': [30], 'READY': [30],
-    'DELIVERING': [40], 'COMPLETED': [50], 'CANCELLED': [60, 70, 80],
-}
-# 商户操作 -> 目标内部状态
-TARGET_STATUS = {
-    'PENDING': 10, 'CONFIRMED': 30, 'PREPARING': 30, 'READY': 30,
-    'DELIVERING': 40, 'COMPLETED': 50, 'CANCELLED': 60,
-}
+from .models import OrderInfo, OrderItem
+from .state import MERCHANT_TARGET_STATUSES, change_status
 
 
 def order_to_dict(o):
@@ -32,7 +18,6 @@ def order_to_dict(o):
     items = [
         {
             'productName': it.product_name,
-            'skuName': it.spec_text,
             'price': float(it.price),
             'quantity': it.quantity,
             'amount': float(it.amount),
@@ -46,35 +31,28 @@ def order_to_dict(o):
         'customerPhone': u.phone if u else '',
         'deliveryAddress': o.address_snapshot,
         'items': items,
+        'productAmount': float(o.total_amount),
+        'deliveryFee': float(o.delivery_fee),
         'totalAmount': float(o.pay_amount),
         'paymentMethod': '模拟支付',
         'remark': o.remark,
-        'status': STATUS_TO_M.get(o.status, 'PENDING'),
+        'status': o.status,
         'createTime': o.create_time.strftime('%Y-%m-%d %H:%M:%S') if o.create_time else '',
     }
 
 
-def _change_status(order, target, operator_role='merchant', operator_id=None):
-    if order.status == target:
-        return
-    from_status = order.status
-    order.status = target
-    order.save()
-    OrderStatusLog.objects.create(
-        order=order, from_status=from_status, to_status=target,
-        operator_id=operator_id, operator_role=operator_role,
-    )
-
-
 @require_http_methods(['GET'])
-@merchant_login_required
+@merchant_approved_required
 def order_list(request):
     merchant = request.merchant
     qs = OrderInfo.objects.filter(merchant=merchant).order_by('-id')
 
     status = request.GET.get('status')
-    if status and status in M_TO_STATUS:
-        qs = qs.filter(status__in=M_TO_STATUS[status])
+    if status:
+        try:
+            qs = qs.filter(status=int(status))
+        except ValueError:
+            pass
 
     try:
         page = int(request.GET.get('page') or 1)
@@ -102,7 +80,7 @@ def order_list(request):
 
 
 @require_http_methods(['GET'])
-@merchant_login_required
+@merchant_approved_required
 def order_detail(request, pk):
     o = OrderInfo.objects.filter(id=pk, merchant=request.merchant).first()
     if not o:
@@ -111,33 +89,44 @@ def order_detail(request, pk):
 
 
 @require_http_methods(['PUT', 'POST'])
-@merchant_login_required
+@merchant_approved_required
 def order_update_status(request, pk):
     o = OrderInfo.objects.filter(id=pk, merchant=request.merchant).first()
     if not o:
         return fail_m('订单不存在')
     data = get_json(request)
-    target = TARGET_STATUS.get(data.get('status'))
-    if target is None:
+    try:
+        target = int(data.get('status'))
+    except (TypeError, ValueError):
         return fail_m('未知的订单状态')
-    _change_status(o, target, operator_role='merchant')
+    if target not in MERCHANT_TARGET_STATUSES:
+        return fail_m('未知的订单状态')
+    changed, message = change_status(
+        o, target, operator_role='merchant', operator_id=request.merchant.id,
+    )
+    if not changed:
+        return fail_m(message)
     return ok_m(order_to_dict(o), message='订单状态已更新')
 
 
 @require_http_methods(['PUT', 'POST'])
-@merchant_login_required
+@merchant_approved_required
 def order_cancel(request, pk):
     o = OrderInfo.objects.filter(id=pk, merchant=request.merchant).first()
     if not o:
         return fail_m('订单不存在')
-    _change_status(o, 60, operator_role='merchant')
+    changed, message = change_status(
+        o, OrderInfo.STATUS_CANCELED, operator_role='merchant', operator_id=request.merchant.id,
+    )
+    if not changed:
+        return fail_m(message)
     return ok_m(order_to_dict(o), message='订单已取消')
 
 
 # ---- 统计 ----
 
 @require_http_methods(['GET'])
-@merchant_login_required
+@merchant_approved_required
 def stats_overview(request):
     merchant = request.merchant
     today = date.today()
@@ -153,24 +142,24 @@ def stats_overview(request):
 
 
 @require_http_methods(['GET'])
-@merchant_login_required
+@merchant_approved_required
 def stats_recent_orders(request):
     qs = OrderInfo.objects.filter(merchant=request.merchant).order_by('-id')[:5]
     return ok_m([order_to_dict(o) for o in qs])
 
 
 @require_http_methods(['GET'])
-@merchant_login_required
+@merchant_approved_required
 def stats_order_status(request):
     rows = (
         OrderInfo.objects.filter(merchant=request.merchant)
         .values('status').annotate(count=Count('id'))
     )
-    return ok_m([{'status': STATUS_TO_M.get(r['status'], 'PENDING'), 'count': r['count']} for r in rows])
+    return ok_m([{'status': r['status'], 'count': r['count']} for r in rows])
 
 
 @require_http_methods(['GET'])
-@merchant_login_required
+@merchant_approved_required
 def stats_sales(request):
     """近 7 天每日单量。"""
     merchant = request.merchant
@@ -184,7 +173,7 @@ def stats_sales(request):
 
 
 @require_http_methods(['GET'])
-@merchant_login_required
+@merchant_approved_required
 def stats_revenue_trend(request):
     """近 7 天每日营业额（已支付口径）。"""
     merchant = request.merchant
@@ -200,7 +189,7 @@ def stats_revenue_trend(request):
 
 
 @require_http_methods(['GET'])
-@merchant_login_required
+@merchant_approved_required
 def stats_top_products(request):
     """近 30 天销量 Top10。"""
     start = date.today() - timedelta(days=30)
@@ -217,7 +206,7 @@ def stats_top_products(request):
 
 
 @require_http_methods(['GET'])
-@merchant_login_required
+@merchant_approved_required
 def stats_orders(request):
     """近期订单（供报表页复用）。"""
     qs = OrderInfo.objects.filter(merchant=request.merchant).order_by('-id')[:20]

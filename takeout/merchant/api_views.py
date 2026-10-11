@@ -1,13 +1,28 @@
-"""商户端接口：登录、资料、营业状态。"""
+"""商户端接口：注册入驻、登录、资料、营业状态。
+
+未通过入驻审核的商户可以登录并查看审核状态，但只能使用 login 与 current 两个接口，
+经营类接口由 merchant_approved_required 拦下（R3）。
+"""
 
 from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
+from django.db import transaction
 from django.views.decorators.http import require_http_methods
 
-from common.auth import make_merchant_token, merchant_login_required
+from common.auth import make_merchant_token, merchant_approved_required, merchant_login_required
 from common.response import fail_m, ok_m
 from common.utils import get_json
 
 from .models import MerchantInfo
+
+# 注册时必填的字段：(请求字段名, 提示用名称)；店铺简介为选填
+REQUIRED_REGISTER_FIELDS = (
+    ('username', '账号'),
+    ('password', '密码'),
+    ('name', '店铺名称'),
+    ('phone', '联系电话'),
+    ('address', '店铺地址'),
+)
 
 
 def merchant_to_dict(m):
@@ -31,7 +46,45 @@ def merchant_to_dict(m):
 
 
 @require_http_methods(['POST'])
+def register(request):
+    """商户注册与入驻申请：注册账号的同时提交入驻资料，生成「待审核」商户记录。"""
+    data = get_json(request)
+    values = {key: (data.get(key) or '').strip() for key, _ in REQUIRED_REGISTER_FIELDS}
+    values['name'] = values['name'] or (data.get('merchantName') or '').strip()
+
+    missing = [label for key, label in REQUIRED_REGISTER_FIELDS if not values.get(key)]
+    if missing:
+        return fail_m(f'请填写：{"、".join(missing)}')
+    if len(values['password']) < 6:
+        return fail_m('密码长度不能少于 6 位')
+    if User.objects.filter(username=values['username']).exists():
+        return fail_m('该账号已被占用，请更换')
+
+    with transaction.atomic():
+        auth_user = User.objects.create_user(
+            username=values['username'], password=values['password'],
+        )
+        merchant = MerchantInfo.objects.create(
+            auth_user=auth_user,
+            name=values['name'],
+            phone=values['phone'],
+            address=values['address'],
+            description=(data.get('description') or '').strip(),
+            status=MerchantInfo.STATUS_PENDING,
+        )
+
+    return ok_m({
+        'token': make_merchant_token(auth_user),
+        'merchantId': merchant.id,
+        'merchantName': merchant.name,
+        'avatar': merchant.logo or '',
+        'status': merchant.status,
+    }, message='入驻申请已提交，请等待平台审核')
+
+
+@require_http_methods(['POST'])
 def login(request):
+    """商户登录：账号密码校验通过即可登录，未过审商户登录后只能查看审核状态（R3）。"""
     data = get_json(request)
     username = (data.get('username') or '').strip()
     password = (data.get('password') or '').strip()
@@ -41,14 +94,13 @@ def login(request):
     merchant = MerchantInfo.objects.filter(auth_user=user).first()
     if merchant is None:
         return fail_m('该账号不是商户账号')
-    if merchant.status != 20:
-        return fail_m('商户尚未通过审核，无法登录')
     token = make_merchant_token(user)
     return ok_m({
         'token': token,
         'merchantId': merchant.id,
         'merchantName': merchant.name,
         'avatar': merchant.logo or '',
+        'status': merchant.status,
     })
 
 
@@ -59,7 +111,7 @@ def current(request):
 
 
 @require_http_methods(['PUT', 'POST'])
-@merchant_login_required
+@merchant_approved_required
 def update_info(request):
     data = get_json(request)
     m = request.merchant
@@ -78,7 +130,7 @@ def update_info(request):
 
 
 @require_http_methods(['PUT', 'POST'])
-@merchant_login_required
+@merchant_approved_required
 def update_status(request):
     """营业状态：{open: true/false} 落库。"""
     data = get_json(request)
@@ -93,7 +145,7 @@ def update_status(request):
 
 
 @require_http_methods(['POST'])
-@merchant_login_required
+@merchant_approved_required
 def upload_avatar(request):
     """商户头像/Logo 上传：multipart 字段 file，存 media/ 并更新 logo。"""
     import os

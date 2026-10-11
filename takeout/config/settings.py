@@ -5,6 +5,7 @@ Django settings for the "基于 Python 的外卖平台" project.
 """
 
 import os
+from decimal import Decimal
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -134,3 +135,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LLM_BASE_URL = os.environ.get('LLM_BASE_URL', 'https://api.siliconflow.cn/v1')
 LLM_API_KEY = os.environ.get('LLM_API_KEY', '')
 LLM_MODEL = os.environ.get('LLM_MODEL', 'deepseek-ai/DeepSeek-V4-Flash')
+
+# 平台统一配送费（本期为固定值，下单时快照入订单）
+DELIVERY_FEE = Decimal(os.environ.get('DELIVERY_FEE', '2.00'))

@@ -26,9 +26,9 @@ const pieRef = ref<HTMLElement>()
 const charts: echarts.ECharts[] = []
 
 const PRIMARY = '#ff6d1f'
-const PIE_COLORS: Record<string, string> = {
-  PENDING: '#ff9258', CONFIRMED: '#ff6d1f', READY: '#ffb285',
-  DELIVERING: '#5470c6', COMPLETED: '#67c23a', CANCELLED: '#c0c4cc',
+const PIE_COLORS: Record<number, string> = {
+  10: '#ffd591', 20: '#ff9258', 30: '#ff6d1f',
+  40: '#5470c6', 50: '#67c23a', 60: '#c0c4cc',
 }
 
 function makeChart(el: HTMLElement | undefined, option: echarts.EChartsOption) {
@@ -78,7 +78,7 @@ async function load() {
     legend: { bottom: 0, itemWidth: 12, itemHeight: 12 },
     series: [{
       type: 'pie', radius: ['40%', '65%'], center: ['50%', '44%'],
-      data: statusStats.map((s) => ({ name: ORDER_STATUS_TEXT[s.status] || s.status, value: s.count, itemStyle: { color: PIE_COLORS[s.status] } })),
+      data: statusStats.map((s) => ({ name: ORDER_STATUS_TEXT[s.status] ?? String(s.status), value: s.count, itemStyle: { color: PIE_COLORS[s.status] } })),
       label: { formatter: '{b}: {c}' },
     }],
   })

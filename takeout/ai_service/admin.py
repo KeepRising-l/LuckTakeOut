@@ -5,7 +5,7 @@ from .models import ChatMessage, ChatSession, OrderDraft, OrderDraftItem
 
 @admin.register(ChatSession)
 class ChatSessionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'customer', 'cs_user', 'status', 'create_time')
+    list_display = ('id', 'customer', 'status', 'create_time')
     list_filter = ('status',)
 
 
@@ -23,4 +23,4 @@ class OrderDraftAdmin(admin.ModelAdmin):
 
 @admin.register(OrderDraftItem)
 class OrderDraftItemAdmin(admin.ModelAdmin):
-    list_display = ('id', 'draft', 'product', 'spec_text', 'quantity', 'price_snapshot')
+    list_display = ('id', 'draft', 'product', 'quantity', 'price_snapshot')

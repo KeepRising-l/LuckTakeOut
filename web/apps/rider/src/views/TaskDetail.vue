@@ -76,20 +76,6 @@ async function accept() {
   }
 }
 
-async function startDeliver() {
-  if (!task.value || acting.value) return
-  acting.value = true
-  try {
-    await api.updateStatus(task.value.id, 5)
-    showSuccessToast('已开始配送')
-    await load()
-  } catch (e) {
-    showFailToast((e as Error).message || '操作失败')
-  } finally {
-    acting.value = false
-  }
-}
-
 async function finish() {
   if (!task.value || acting.value) return
   try {
@@ -161,7 +147,7 @@ onMounted(load)
           </div>
           <div class="detail-row-body">
             <div class="detail-row-title">{{ task.deliveryAddress }}</div>
-            <div class="detail-row-sub">距离 {{ task.distance }} · 预计 {{ task.estimatedTime }}</div>
+            <div class="detail-row-sub">配送费 ¥{{ money(task.deliveryFee) }}</div>
           </div>
         </div>
         <div class="detail-row">
@@ -203,12 +189,6 @@ onMounted(load)
         <template v-if="task.status === 'pending'">
           <span class="footer-fee">配送费 ¥{{ money(task.deliveryFee) }}</span>
           <van-button type="primary" round :loading="acting" @click="accept">接单</van-button>
-        </template>
-        <template v-else-if="task.status === 'accepted'">
-          <span class="footer-tip">请前往商家取餐</span>
-          <van-button type="warning" round :loading="acting" @click="startDeliver">
-            我已取餐，开始配送
-          </van-button>
         </template>
         <template v-else-if="task.status === 'delivering'">
           <span class="footer-tip">配送中，请尽快送达</span>

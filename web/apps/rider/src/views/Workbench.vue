@@ -93,7 +93,7 @@ async function acceptTask(task: DeliveryTask) {
   try {
     await showConfirmDialog({
       title: '确认接单',
-      message: `商家：${task.merchantName}\n配送费：¥${money(task.deliveryFee)}\n距离：${task.distance}km`,
+      message: `商家：${task.merchantName}\n配送费：¥${money(task.deliveryFee)}`,
       confirmButtonText: '确认接单',
       cancelButtonText: '取消',
     })
@@ -106,16 +106,6 @@ async function acceptTask(task: DeliveryTask) {
     refreshAll()
   } catch (e) {
     showFailToast((e as Error).message || '接单失败')
-  }
-}
-
-async function startDeliver(task: DeliveryTask) {
-  try {
-    await api.updateStatus(task.id, 5)
-    showSuccessToast('已开始配送')
-    loadTasks()
-  } catch (e) {
-    showFailToast((e as Error).message || '操作失败')
   }
 }
 
@@ -165,18 +155,6 @@ onUnmounted(() => {
           <div class="wb-avatar">{{ (rider?.name || auth.riderInfo?.name || '骑').slice(0, 1) }}</div>
           <div class="wb-rider-meta">
             <div class="wb-name">{{ rider?.name || auth.riderInfo?.name || '骑手' }}</div>
-            <div class="wb-rating">
-              <van-rate
-                :model-value="Number(rider?.rating ?? 5)"
-                readonly
-                allow-half
-                size="11"
-                color="#ffd21e"
-                void-color="rgba(255,255,255,.45)"
-                void-icon="star"
-              />
-              <span class="wb-rating-num">{{ rider?.rating ?? '--' }}</span>
-            </div>
           </div>
         </div>
         <div class="wb-switch" @click.stop>
@@ -195,10 +173,6 @@ onUnmounted(() => {
         <div class="wb-stat">
           <div class="wb-stat-num">{{ rider?.todayDeliveryCount ?? stats?.todayDeliveryCount ?? 0 }}</div>
           <div class="wb-stat-label">今日单量</div>
-        </div>
-        <div class="wb-stat">
-          <div class="wb-stat-num">¥{{ money(rider?.todayEarnings ?? stats?.todayEarnings) }}</div>
-          <div class="wb-stat-label">今日收入</div>
         </div>
         <div class="wb-stat">
           <div class="wb-stat-num">{{ stats?.totalDeliveryCount ?? 0 }}</div>
@@ -231,16 +205,18 @@ onUnmounted(() => {
               <span class="task-line-text">送：{{ t.deliveryAddress }}</span>
             </div>
             <div class="task-card-bottom">
-              <span class="task-meta"> {{ t.distance }} · {{ t.estimatedTime }} </span>
-              <van-button
-                type="primary"
-                size="small"
-                round
-                class="task-btn"
-                @click.stop="acceptTask(t)"
-              >
-                接单
-              </van-button>
+              <span class="task-meta">配送费 ¥{{ money(t.deliveryFee) }}</span>
+              <div class="task-btns">
+                <van-button
+                  type="primary"
+                  size="small"
+                  round
+                  class="task-btn"
+                  @click.stop="acceptTask(t)"
+                >
+                  抢单
+                </van-button>
+              </div>
             </div>
           </div>
         </div>
@@ -270,16 +246,6 @@ onUnmounted(() => {
             <div class="task-card-bottom">
               <span class="task-meta">配送费 ¥{{ money(t.deliveryFee) }}</span>
               <div class="task-btns">
-                <van-button
-                  v-if="t.status === 'accepted'"
-                  type="warning"
-                  size="small"
-                  round
-                  class="task-btn"
-                  @click.stop="startDeliver(t)"
-                >
-                  开始配送
-                </van-button>
                 <van-button
                   v-if="t.status === 'delivering'"
                   type="primary"

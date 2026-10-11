@@ -1,4 +1,4 @@
-import { createRequest, storage } from '@takeout/shared'
+import { createRequest, storage, ORDER_STATUS } from '@takeout/shared'
 import type { AxiosInstance } from 'axios'
 import router from '@/router'
 import { useAuthStore } from '@/stores/auth'
@@ -13,11 +13,28 @@ export const http: AxiosInstance = createRequest({
 })
 
 // ---- 认证 ----
-export function login(data: { username: string; password: string }) {
-  return http.post<never, {
-    token: string; merchantId: number; merchantName: string; avatar: string
-  }>('/merchant/login', data)
+export interface LoginResult {
+  token: string
+  merchantId: number
+  merchantName: string
+  avatar: string
+  /** 入驻审核状态：10 待审核 / 20 已通过 / 30 已驳回 */
+  status: number
 }
+
+export interface RegisterPayload {
+  username: string
+  password: string
+  name: string
+  phone: string
+  address: string
+  description?: string
+}
+
+export const login = (data: { username: string; password: string }) =>
+  http.post<never, LoginResult>('/merchant/login', data)
+export const register = (data: RegisterPayload) =>
+  http.post<never, LoginResult>('/merchant/register', data)
 export const fetchCurrent = () => http.get<never, MerchantCurrent>('/merchant/current')
 export const updateMerchantInfo = (data: Partial<{ name: string; description: string; phone: string; address: string; logo: string }>) =>
   http.put<never, MerchantCurrent>('/merchant/info', data)
@@ -37,6 +54,8 @@ export interface MerchantCurrent {
   description: string
   phone: string
   address: string
+  /** 入驻审核状态：10 待审核 / 20 已通过 / 30 已驳回 */
+  status: number
   open?: boolean
   openTime?: string
   closeTime?: string
@@ -85,10 +104,10 @@ export const updateCategory = (id: number, data: { name?: string; description?: 
 export const deleteCategory = (id: number) => http.delete<never, unknown>(`/product/category/${id}`)
 
 // ---- 订单 ----
-export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'READY' | 'DELIVERING' | 'COMPLETED' | 'CANCELLED'
+/** 订单状态：与后端整数枚举一致（10–60），商户端覆盖 30 的措辞 */
+export type OrderStatus = number
 export interface OrderItem {
   productName: string
-  skuName: string
   price: number
   quantity: number
   amount: number
@@ -100,6 +119,8 @@ export interface Order {
   customerPhone: string
   deliveryAddress: string
   items: OrderItem[]
+  productAmount: number
+  deliveryFee: number
   totalAmount: number
   paymentMethod: string
   remark: string
@@ -109,28 +130,25 @@ export interface Order {
 export interface OrderPage extends PageData<Order> {
   stats: { pending: number; preparing: number; today: number }
 }
-export const fetchOrders = (params: { page: number; size: number; status?: string }) =>
+export const fetchOrders = (params: { page: number; size: number; status?: number }) =>
   http.get<never, OrderPage>('/order/merchant', { params })
 export const fetchOrder = (id: number) => http.get<never, Order>(`/order/${id}`)
 export const acceptOrder = (id: number) =>
-  http.put<never, Order>(`/order/${id}/status`, { status: 'CONFIRMED' })
+  http.put<never, Order>(`/order/${id}/status`, { status: 30 })
 export const cancelOrder = (id: number) => http.put<never, Order>(`/order/${id}/cancel`)
 
-export const ORDER_STATUS_TEXT: Record<string, string> = {
-  PENDING: '待接单',
-  CONFIRMED: '备餐中',
-  READY: '待取餐',
-  DELIVERING: '配送中',
-  COMPLETED: '已完成',
-  CANCELLED: '已取消',
+/** 商户端状态文案：取值与三端一致，30 按商户视角呈现为「已接单，待骑手取餐」 */
+export const ORDER_STATUS_TEXT: Record<number, string> = {
+  ...ORDER_STATUS,
+  30: '已接单，待骑手取餐',
 }
-export const ORDER_STATUS_TAG: Record<string, string> = {
-  PENDING: 'warning',
-  CONFIRMED: 'primary',
-  READY: 'primary',
-  DELIVERING: 'warning',
-  COMPLETED: 'success',
-  CANCELLED: 'info',
+export const ORDER_STATUS_TAG: Record<number, string> = {
+  10: 'warning',
+  20: 'warning',
+  30: 'primary',
+  40: 'warning',
+  50: 'success',
+  60: 'info',
 }
 
 // ---- 统计 ----
@@ -143,7 +161,7 @@ export interface Overview {
 }
 export const fetchOverview = () => http.get<never, Overview>('/stats/overview')
 export const fetchRecentOrders = () => http.get<never, Order[]>('/stats/recent-orders')
-export const fetchOrderStatusStats = () => http.get<never, { status: string; count: number }[]>('/stats/order-status')
+export const fetchOrderStatusStats = () => http.get<never, { status: number; count: number }[]>('/stats/order-status')
 export const fetchSales = () => http.get<never, { date: string; count: number }[]>('/stats/sales')
 export const fetchRevenueTrend = () => http.get<never, { date: string; revenue: number }[]>('/stats/revenue-trend')
 export const fetchTopProducts = () => http.get<never, { name: string; count: number }[]>('/stats/top-products')

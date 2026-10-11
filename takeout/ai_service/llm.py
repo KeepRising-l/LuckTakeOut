@@ -137,21 +137,12 @@ def _mock_completion(messages):
             return _text('没有找到匹配的商家，请换一个说法。')
         return _tc('search_menu', {'merchant_id': mlist[0]['id']})
 
-    if 'get_item_specs' not in called:
-        plist = (res.get('search_menu') or {}).get('list') or []
-        if not plist:
-            return _text('该商家暂无菜品。')
-        return _tc('get_item_specs', {'product_id': plist[0]['id']})
-
     if 'validate_draft' not in called:
         mlist = (res.get('search_merchant') or {}).get('list') or []
         plist = (res.get('search_menu') or {}).get('list') or []
-        skus = (res.get('get_item_specs') or {}).get('skus') or []
-        items = [{
-            'product_id': plist[0]['id'],
-            'sku_id': skus[0]['id'] if skus else None,
-            'quantity': 1,
-        }]
+        if not mlist or not plist:
+            return _text('没有找到可下单的菜品，请换一个说法。')
+        items = [{'product_id': plist[0]['id'], 'quantity': 1}]
         return _tc('validate_draft', {'merchant_id': mlist[0]['id'], 'items': items})
 
     if 'create_draft' not in called:
@@ -159,7 +150,7 @@ def _mock_completion(messages):
         mlist = (res.get('search_merchant') or {}).get('list') or []
         return _tc('create_draft', {
             'merchant_id': mlist[0]['id'],
-            'items': [{'product_id': i['product_id'], 'sku_id': i.get('sku_id'), 'quantity': i['quantity']}
+            'items': [{'product_id': i['product_id'], 'quantity': i['quantity']}
                       for i in (v.get('items') or [])],
         })
 

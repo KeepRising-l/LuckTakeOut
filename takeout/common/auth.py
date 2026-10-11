@@ -89,6 +89,46 @@ def merchant_login_required(view):
     return wrapper
 
 
+def merchant_approved_required(view):
+    """要求商户登录且已通过入驻审核（R3）。
+
+    未登录返回 401；未通过审核返回 403——未过审商户登录后只能查看入驻审核状态。
+
+    约定：新增的商户端**经营类**接口（菜品、订单、营业统计、店铺信息维护）必须挂本装饰器，
+    只有登录与查看本人资料这两个接口使用 merchant_login_required。
+    """
+
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        from merchant.models import MerchantInfo
+
+        auth_user = _get_merchant_user(request)
+        merchant = None
+        if auth_user is not None:
+            merchant = MerchantInfo.objects.filter(auth_user=auth_user).first()
+        if merchant is None:
+            return JsonResponse(
+                {'code': 'A0401', 'info': '未登录或登录已过期', 'data': None},
+                status=401,
+                json_dumps_params={'ensure_ascii': False},
+            )
+        request.user = auth_user
+        request.merchant = merchant
+        if merchant.status != MerchantInfo.STATUS_APPROVED:
+            return JsonResponse(
+                {
+                    'code': 'A0403',
+                    'info': '商户尚未通过入驻审核，暂时无法使用经营功能',
+                    'data': {'status': merchant.status},
+                },
+                status=403,
+                json_dumps_params={'ensure_ascii': False},
+            )
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
 # ---- 骑手端 Token（独立盐值）----
 
 RIDER_SALT = 'takeout-rider-token'
