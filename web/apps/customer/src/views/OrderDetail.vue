@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showConfirmDialog, showLoadingToast, showToast } from 'vant'
+import { closeToast, showConfirmDialog, showLoadingToast, showToast } from 'vant'
 import { orderApi, ORDER_STATUS, money, datetime } from '@/api'
 import type { Order } from '@/api'
 

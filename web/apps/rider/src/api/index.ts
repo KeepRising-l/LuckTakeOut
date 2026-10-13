@@ -78,7 +78,6 @@ export const api = {
   getPending: () => http.get<unknown, TaskPage>('/delivery/tasks/pending'),
   getTask: (id: number | string) => http.get<unknown, DeliveryTask>(`/delivery/tasks/${id}`),
   acceptTask: (id: number | string) => http.post<unknown, unknown>(`/delivery/tasks/${id}/accept`),
-  rejectTask: (id: number | string) => http.post<unknown, unknown>(`/delivery/tasks/${id}/reject`),
   /** status: 6 已送达（接单即进入配送中，本期不设中间态） */
   updateStatus: (id: number | string, status: number) =>
     http.post<unknown, unknown>(`/delivery/tasks/${id}/status`, { status }),

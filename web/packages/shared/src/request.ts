@@ -32,7 +32,8 @@ export function createRequest(options: RequestFactoryOptions): AxiosInstance {
   })
 
   http.interceptors.response.use(
-    (resp) => {
+    // 运行时返回解包后的业务数据；axios 内置类型要求返回 AxiosResponse，此处放宽签名
+    (resp): any => {
       const body = resp.data as Result
       if (resp.status === 401 || body?.code === 'A0401') {
         options.onUnauthorized()

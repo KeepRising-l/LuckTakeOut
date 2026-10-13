@@ -30,7 +30,7 @@ const statusText: Record<string, string> = {
   completed: '已完成',
 }
 
-const statusTagType: Record<string, string> = {
+const statusTagType: Record<string, 'primary' | 'success' | 'warning'> = {
   accepted: 'primary',
   delivering: 'warning',
   completed: 'success',

@@ -12,13 +12,21 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-9$e+9ra9^0)*6()v$2!t%(ldgi6js4e7xl4snxx266wjsd+ef%'
+# 运行模式：默认开发/演示（DEBUG=True）；生产部署时设置环境变量 DJANGO_DEBUG=0
+DEBUG = os.environ.get('DJANGO_DEBUG', '1').lower() not in ('0', 'false', 'no')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# 密钥：优先从环境变量 DJANGO_SECRET_KEY 注入。
+# 生产模式（DJANGO_DEBUG=0）下未注入则拒绝启动；开发/演示模式使用内置值以保持零配置运行。
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '')
+if not SECRET_KEY:
+    if not DEBUG:
+        from django.core.exceptions import ImproperlyConfigured
 
-ALLOWED_HOSTS = ['*']
+        raise ImproperlyConfigured('生产环境必须通过 DJANGO_SECRET_KEY 环境变量注入密钥')
+    SECRET_KEY = 'django-insecure-9$e+9ra9^0)*6()v$2!t%(ldgi6js4e7xl4snxx266wjsd+ef%'  # 仅限本地开发与演示
+
+# 允许的主机：生产部署时通过环境变量 DJANGO_ALLOWED_HOSTS 注入（逗号分隔）
+ALLOWED_HOSTS = [h for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',') if h]
 
 
 # Application definition

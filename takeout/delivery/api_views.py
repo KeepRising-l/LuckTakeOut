@@ -163,12 +163,6 @@ def accept_task(request, task_id):
 
 @require_http_methods(['POST'])
 @rider_login_required
-def reject_task(request, task_id):
-    return ok(True, info='已拒单')
-
-
-@require_http_methods(['POST'])
-@rider_login_required
 def update_task_status(request, task_id):
     """确认送达：配送中 -> 已完成。"""
     o = OrderInfo.objects.filter(id=task_id).first()

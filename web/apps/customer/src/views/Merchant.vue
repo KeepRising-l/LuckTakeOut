@@ -80,13 +80,10 @@ onMounted(load)
       <div class="m-text">
         <div class="m-name">{{ merchant.name }}</div>
         <div class="m-sub">
-          <van-rate :model-value="merchant.rating" readonly allow-half size="12" color="#ff6d1f" />
-          <span>{{ merchant.rating != null ? `${merchant.rating} 分` : '暂无评分' }} · 配送费 ¥{{ merchant.deliveryFee }}</span>
+          <van-rate :model-value="merchant.rating ?? 0" readonly allow-half size="12" color="#ff6d1f" />
+          <span>{{ merchant.rating != null ? `${merchant.rating} 分` : '暂无评分' }} · 配送费 ¥{{ money(merchant.deliveryFee) }}</span>
         </div>
-        <div class="m-sub">配送费 ¥{{ money(merchant.deliveryFee) }} · {{ merchant.address }}</div>
-        <div class="m-tags">
-          <van-tag plain type="warning" v-for="t in merchant.tags || []" :key="t">{{ t }}</van-tag>
-        </div>
+        <div class="m-sub">{{ merchant.address }}</div>
       </div>
     </div>
 
@@ -212,10 +209,6 @@ onMounted(load)
   color: #969799;
   display: flex;
   align-items: center;
-  gap: 4px;
-}
-.m-tags {
-  display: flex;
   gap: 4px;
 }
 .menu-wrap {

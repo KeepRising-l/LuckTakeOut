@@ -1,18 +1,19 @@
 """URL 配置。
 
-- /admin/          平台运营后台
-- /api/v1/         顾客端 H5 调用的接口
-- /api/            商户端后台调用的接口
-- /h5/             复用的顾客端页面
-- /merchant-admin/ 复用的商户端页面
+- /                顾客端 SPA（Vite 构建产物）
+- /merchant/       商户端 SPA
+- /rider/          骑手端 SPA
+- /admin/          平台运营后台（Django Admin）
+- /api/v1/         顾客端、骑手端、AI 助手接口
+- /api/            商户端、运营端接口
+
+前端三端由 Django 同源托管；构建产物缺失时返回 404 提示（请在 web/ 目录执行 npm run build）。
 """
 
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
-from django.views.static import serve
-from django.shortcuts import redirect
 from django.http import FileResponse, Http404
 import os
 
@@ -32,9 +33,9 @@ from user import views as user_views
 WEB_APPS = settings.BASE_DIR.parent / 'web' / 'apps'
 
 
-def spa_serve(dist_root, legacy_root=None):
+def spa_serve(dist_root):
     """托管 Vite 构建产物：命中文件返回文件，未命中回退 index.html（SPA 路由）；
-    dist 尚未构建时回退 legacy_root 旧页面目录。"""
+    构建产物缺失时返回 404 提示。"""
 
     def wrapper(request, path='index.html'):
         base = os.path.normpath(str(dist_root))
@@ -44,8 +45,6 @@ def spa_serve(dist_root, legacy_root=None):
         index = os.path.join(base, 'index.html')
         if os.path.isfile(index):
             return FileResponse(open(index, 'rb'))
-        if legacy_root is not None:
-            return serve(request, path, document_root=legacy_root)
         raise Http404('前端尚未构建：请在 web/ 目录执行 npm run build')
 
     return wrapper
@@ -80,7 +79,6 @@ api_patterns = [
     path('delivery/tasks/pending', delivery_api.pending_tasks),
     path('delivery/tasks/<int:task_id>', delivery_api.task_detail),
     path('delivery/tasks/<int:task_id>/accept', delivery_api.accept_task),
-    path('delivery/tasks/<int:task_id>/reject', delivery_api.reject_task),
     path('delivery/tasks/<int:task_id>/status', delivery_api.update_task_status),
     path('delivery/statistics', delivery_api.statistics),
 
@@ -98,7 +96,7 @@ api_patterns = [
     path('ai/drafts/<int:pk>/confirm', ai_api.draft_confirm),
 ]
 
-# 商户端（merchant-admin）
+# 商户端接口
 merchant_api_patterns = [
     path('merchant/register', merchant_api.register),
     path('merchant/login', merchant_api.login),
@@ -141,29 +139,17 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include(api_patterns)),
     path('api/', include(merchant_api_patterns)),
-    # 新前端 SPA（Vite 构建产物；未构建时自动回退旧 frontend 页面）
-    path('merchant/', spa_serve(WEB_APPS / 'merchant' / 'dist',
-                                settings.BASE_DIR / 'frontend' / 'merchant-admin')),
-    path('merchant/<path:path>', spa_serve(WEB_APPS / 'merchant' / 'dist',
-                                           settings.BASE_DIR / 'frontend' / 'merchant-admin')),
-    path('rider/', spa_serve(WEB_APPS / 'rider' / 'dist',
-                             settings.BASE_DIR / 'frontend' / 'rider')),
-    path('rider/<path:path>', spa_serve(WEB_APPS / 'rider' / 'dist',
-                                        settings.BASE_DIR / 'frontend' / 'rider')),
-    # 旧前端页面（清理前保留可用）
-    path('h5/<path:path>', serve, {'document_root': settings.BASE_DIR / 'frontend' / 'h5-food-delivery'}),
-    path('merchant-admin/<path:path>', serve, {'document_root': settings.BASE_DIR / 'frontend' / 'merchant-admin'}),
-    path('rider-index/', lambda request: redirect('/rider/index.html')),
-    path('admin-ui/<path:path>', serve, {'document_root': settings.BASE_DIR / 'frontend' / 'admin'}),
-    path('ai/', lambda request: redirect('/ai/index.html')),
-    path('ai/<path:path>', serve, {'document_root': settings.BASE_DIR / 'frontend' / 'ai'}),
-    path('frontend/<path:path>', serve, {'document_root': settings.BASE_DIR / 'frontend'}),
+    # 三端 SPA（Vite 构建产物）
+    path('merchant/', spa_serve(WEB_APPS / 'merchant' / 'dist')),
+    path('merchant/<path:path>', spa_serve(WEB_APPS / 'merchant' / 'dist')),
+    path('rider/', spa_serve(WEB_APPS / 'rider' / 'dist')),
+    path('rider/<path:path>', spa_serve(WEB_APPS / 'rider' / 'dist')),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # 顾客端 SPA：根路径兜底（必须放最后，吞掉所有未匹配路径并回退 index.html）
 urlpatterns += [
-    path('', spa_serve(WEB_APPS / 'customer' / 'dist', settings.BASE_DIR / 'frontend')),
-    path('<path:path>', spa_serve(WEB_APPS / 'customer' / 'dist', settings.BASE_DIR / 'frontend')),
+    path('', spa_serve(WEB_APPS / 'customer' / 'dist')),
+    path('<path:path>', spa_serve(WEB_APPS / 'customer' / 'dist')),
 ]

@@ -79,7 +79,6 @@ onMounted(() => {
           </div>
           <div class="m-desc">{{ m.description }}</div>
           <div class="m-meta">
-            <van-tag plain type="warning" v-for="t in m.tags || []" :key="t">{{ t }}</van-tag>
             <span>配送费 ¥{{ m.deliveryFee }}</span>
           </div>
         </div>

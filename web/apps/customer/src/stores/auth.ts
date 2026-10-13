@@ -19,7 +19,7 @@ export const useAuthStore = defineStore('auth', {
     },
     logout() {
       this.token = ''
-      this.user = undefined
+      this.user = null
       storage.remove('customerToken')
       storage.remove('customerInfo')
     },
