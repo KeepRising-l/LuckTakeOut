@@ -11,7 +11,7 @@ context: |
                 payment / delivery / review / platform_ops / ai_service / common / config。
   - web/        前端 npm workspaces monorepo：apps/customer、apps/merchant、apps/rider、
                 packages/shared（Vue 3 + Vite + TypeScript + Pinia + Vue Router）。
-  - thesis-docs/ 论文文档：01-开题报告.md、02-需求分析.md、03-系统设计.md。
+  - thesis-docs/ 论文文档：02-需求分析.md、03-系统设计.md。
 
   需求权威源：thesis-docs/02-需求分析.md 是需求的唯一权威（第 2 稿）。
   openspec/specs 是它的可验证投影，用于驱动实现与验收；需求变更时先改 02，再同步 specs。

@@ -49,7 +49,6 @@ cd web && npm install && web\run-dev.bat
 | 文档 | 位置 |
 | --- | --- |
 | 任务书（学院格式，含 Word 版） | `thesis-docs/00-任务书.md` / `.docx` |
-| 开题报告（学院格式，含 Word 版） | `thesis-docs/01-开题报告.md` / `.docx` |
 | 需求分析（功能需求权威源） | `thesis-docs/02-需求分析.md` |
 | 系统设计 | `thesis-docs/03-系统设计.md` |
 | 产品需求（为什么这样设计 / 研究背景与意义） | `thesis-docs/04-产品需求说明书.md` |
