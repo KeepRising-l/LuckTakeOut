@@ -180,6 +180,10 @@ onMounted(load)
           <span>配送费</span>
           <span class="fee-value">¥{{ money(task.deliveryFee) }}</span>
         </div>
+        <div class="goods-summary goods-fee">
+          <span>顾客实付</span>
+          <span class="fee-value">¥{{ money(task.totalAmount) }}</span>
+        </div>
       </div>
 
       <div class="detail-placeholder"></div>

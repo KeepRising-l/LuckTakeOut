@@ -69,6 +69,7 @@ export interface Product {
   image: string
   mainImage?: string
   productImage?: string
+  merchantId: number
   price: number
   stock: number
   categoryId: number

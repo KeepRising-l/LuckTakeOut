@@ -82,7 +82,7 @@ onMounted(load)
           <span>购买数量</span>
           <van-stepper v-model="quantity" min="1" :max="product.stock || 99" />
         </div>
-        <div v-if="merchant" class="merchant-line" @click="router.push(`/merchant/${merchant.id}`)">
+        <div v-if="merchant" class="merchant-line" @click="router.push(`/shop/${merchant.id}`)">
           <van-icon name="shop-o" />
           <span>{{ merchant.name }}</span>
           <van-icon name="arrow" />

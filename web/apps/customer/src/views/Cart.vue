@@ -87,7 +87,7 @@ function checkout(merchantId: number) {
         </div>
         <div class="g-foot">
           <span>已选 {{ groupCheckedCount(g.merchantId) }} 件，合计 <em>¥{{ money(groupTotal(g.merchantId)) }}</em></span>
-          <van-button type="primary" size="small" round @click="checkout(g.merchantId)">去结算</van-button>
+          <van-button type="primary" size="small" round :disabled="!groupCheckedCount(g.merchantId)" @click="checkout(g.merchantId)">去结算</van-button>
         </div>
       </div>
     </template>

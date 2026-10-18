@@ -16,14 +16,14 @@ const submitting = ref(false)
 
 const orderId = String(route.params.id)
 
-/** 状态步骤条：1 下单 → 2 支付 → 3 接单 → 5 配送 → 8 完成 */
+/** 状态步骤条：10 下单 → 20 支付 → 30 接单 → 40 配送 → 50 完成 */
 const stepIndex = computed(() => {
   const s = order.value?.status
-  if (s === 1) return 0
-  if (s === 2) return 1
-  if (s === 3) return 2
-  if (s === 5) return 3
-  if (s === 8) return 4
+  if (s === 10) return 0
+  if (s === 20) return 1
+  if (s === 30) return 2
+  if (s === 40) return 3
+  if (s === 50) return 4
   return -1
 })
 
@@ -31,7 +31,7 @@ async function load() {
   showLoadingToast({ message: '加载中...', forbidClick: true, duration: 0 })
   try {
     order.value = await orderApi.detail(orderId)
-    if (route.query.review === '1' && order.value.status === 8) showReview.value = true
+    if (route.query.review === '1' && order.value.status === 50) showReview.value = true
   } catch (e) {
     showToast((e as Error).message)
   } finally {
@@ -78,7 +78,7 @@ onMounted(load)
     <template v-if="order">
       <!-- 状态区 -->
       <div class="status-panel">
-        <template v-if="order.status === 9">
+        <template v-if="order.status === 60">
           <div class="status-big cancel"><van-icon name="close" /> 已取消</div>
         </template>
         <template v-else>
@@ -121,9 +121,9 @@ onMounted(load)
 
       <!-- 操作 -->
       <div class="action-bar">
-        <van-button v-if="order.status === 1" plain round type="danger" @click="cancel">取消订单</van-button>
-        <van-button v-if="order.status === 1" round type="danger" @click="pay">去支付</van-button>
-        <van-button v-if="order.status === 8" round type="primary" @click="showReview = true">评价订单</van-button>
+        <van-button v-if="order.status === 10" plain round type="danger" @click="cancel">取消订单</van-button>
+        <van-button v-if="order.status === 10" round type="danger" @click="pay">去支付</van-button>
+        <van-button v-if="order.status === 50" round type="primary" @click="showReview = true">评价订单</van-button>
       </div>
     </template>
     <van-empty v-else description="订单不存在" />

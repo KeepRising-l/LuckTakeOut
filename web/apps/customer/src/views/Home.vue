@@ -67,7 +67,7 @@ onMounted(() => {
 
     <div class="section-title">附近商家</div>
     <van-list v-model:loading="loading" :finished="true" finished-text="没有更多了">
-      <div v-for="m in merchants" :key="m.id" class="merchant-card" @click="router.push(`/merchant/${m.id}`)">
+      <div v-for="m in merchants" :key="m.id" class="merchant-card" @click="router.push(`/shop/${m.id}`)">
         <van-image class="m-img" radius="8" fit="cover" :src="pickImage(m)">
           <template #loading><van-icon name="shop-o" /></template>
         </van-image>

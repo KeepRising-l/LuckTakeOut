@@ -33,6 +33,16 @@ from user import views as user_views
 WEB_APPS = settings.BASE_DIR.parent / 'web' / 'apps'
 
 
+# 三端构建产物都放在各自 dist/assets 下却共享 /assets/ URL 前缀（vite base 只改写
+# 引用、不改文件落地位置），所以静态资源按端点目录依次查找，找不到就 404——
+# 绝不能回退 index.html，否则浏览器会拿到 HTML 当 JS/CSS 解析。
+SPA_DIST_ROOTS = {
+    'customer': WEB_APPS / 'customer' / 'dist',
+    'merchant': WEB_APPS / 'merchant' / 'dist',
+    'rider': WEB_APPS / 'rider' / 'dist',
+}
+
+
 def spa_serve(dist_root):
     """托管 Vite 构建产物：命中文件返回文件，未命中回退 index.html（SPA 路由）；
     构建产物缺失时返回 404 提示。"""
@@ -48,6 +58,14 @@ def spa_serve(dist_root):
         raise Http404('前端尚未构建：请在 web/ 目录执行 npm run build')
 
     return wrapper
+
+
+def spa_asset(request, path):
+    for dist_root in SPA_DIST_ROOTS.values():
+        full = os.path.normpath(os.path.join(str(dist_root), 'assets', path))
+        if os.path.isfile(full):
+            return FileResponse(open(full, 'rb'))
+    raise Http404('前端资源不存在：请在 web/ 目录执行 npm run build')
 
 # 顾客端（H5）
 api_patterns = [
@@ -139,17 +157,19 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include(api_patterns)),
     path('api/', include(merchant_api_patterns)),
+    # 三端共享的静态资源（见 SPA_DIST_ROOTS 注释）
+    path('assets/<path:path>', spa_asset),
     # 三端 SPA（Vite 构建产物）
-    path('merchant/', spa_serve(WEB_APPS / 'merchant' / 'dist')),
-    path('merchant/<path:path>', spa_serve(WEB_APPS / 'merchant' / 'dist')),
-    path('rider/', spa_serve(WEB_APPS / 'rider' / 'dist')),
-    path('rider/<path:path>', spa_serve(WEB_APPS / 'rider' / 'dist')),
+    path('merchant/', spa_serve(SPA_DIST_ROOTS['merchant'])),
+    path('merchant/<path:path>', spa_serve(SPA_DIST_ROOTS['merchant'])),
+    path('rider/', spa_serve(SPA_DIST_ROOTS['rider'])),
+    path('rider/<path:path>', spa_serve(SPA_DIST_ROOTS['rider'])),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # 顾客端 SPA：根路径兜底（必须放最后，吞掉所有未匹配路径并回退 index.html）
 urlpatterns += [
-    path('', spa_serve(WEB_APPS / 'customer' / 'dist')),
-    path('<path:path>', spa_serve(WEB_APPS / 'customer' / 'dist')),
+    path('', spa_serve(SPA_DIST_ROOTS['customer'])),
+    path('<path:path>', spa_serve(SPA_DIST_ROOTS['customer'])),
 ]

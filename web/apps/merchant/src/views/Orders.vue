@@ -115,7 +115,7 @@ onMounted(load)
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openDetail(row)">详情</el-button>
-            <el-button v-if="row.status === 'PENDING'" link type="primary" @click="onAccept(row)">接单</el-button>
+            <el-button v-if="row.status === 20" link type="primary" @click="onAccept(row)">接单</el-button>
             <el-button v-if="canCancel(row.status)" link type="danger" @click="onCancel(row)">取消</el-button>
           </template>
         </el-table-column>

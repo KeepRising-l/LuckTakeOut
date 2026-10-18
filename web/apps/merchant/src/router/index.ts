@@ -1,9 +1,9 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import { storage } from '@takeout/shared'
 import { STATUS_APPROVED, type MerchantInfo } from '@/stores/auth'
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes: [
     { path: '/login', name: 'login', component: () => import('@/views/Login.vue'), meta: { title: '商户登录' } },
     { path: '/register', name: 'register', component: () => import('@/views/Register.vue'), meta: { title: '商户入驻' } },

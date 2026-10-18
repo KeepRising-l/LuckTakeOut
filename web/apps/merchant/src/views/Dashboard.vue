@@ -9,6 +9,7 @@ import {
   fetchRevenueTrend,
   fetchTopProducts,
   ORDER_STATUS_TEXT,
+  ORDER_STATUS_TAG,
   type Overview,
   type Order,
 } from '@/api'
@@ -170,7 +171,7 @@ onBeforeUnmount(() => {
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="(row.status === 'COMPLETED' ? 'success' : row.status === 'CANCELLED' ? 'info' : 'warning')" size="small">
+            <el-tag :type="(ORDER_STATUS_TAG as any)[row.status] || 'info'" size="small">
               {{ ORDER_STATUS_TEXT[row.status] || row.status }}
             </el-tag>
           </template>

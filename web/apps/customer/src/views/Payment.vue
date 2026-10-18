@@ -12,10 +12,12 @@ const order = ref<Order>()
 const paying = ref(false)
 const paid = ref(false)
 
+const PENDING_PAY = 10
+
 async function load() {
   try {
     order.value = await orderApi.detail(String(route.params.id))
-    if (order.value.status !== 1) paid.value = true
+    if (Number(order.value.status) !== PENDING_PAY) paid.value = true
   } catch (e) {
     showToast((e as Error).message)
   }

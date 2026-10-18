@@ -14,12 +14,11 @@ const loading = ref(true)
 
 const tabs = [
   { label: '全部', status: 0 },
-  { label: '待支付', status: 1 },
-  { label: '已支付', status: 2 },
-  { label: '待接单', status: 3 },
-  { label: '配送中', status: 5 },
-  { label: '已完成', status: 8 },
-  { label: '已取消', status: 9 },
+  { label: '待支付', status: 10 },
+  { label: '待接单', status: 30 },
+  { label: '配送中', status: 40 },
+  { label: '已完成', status: 50 },
+  { label: '已取消', status: 60 },
 ]
 
 const filtered = computed(() => {
@@ -63,7 +62,7 @@ onMounted(load)
         <div v-for="o in filtered" :key="o.id" class="order-card" @click="router.push(`/orders/${o.id}`)">
           <div class="o-head">
             <span class="o-merchant"><van-icon name="shop-o" /> {{ o.merchantName }}</span>
-            <span class="o-status" :class="{ done: o.status === 8, cancel: o.status === 9, pay: o.status === 1 }">
+            <span class="o-status" :class="{ done: o.status === 50, cancel: o.status === 60, pay: o.status === 10 }">
               {{ ORDER_STATUS[o.status] || o.status }}
             </span>
           </div>
@@ -72,7 +71,7 @@ onMounted(load)
             <span class="o-amount">实付 ¥{{ money(o.actualAmount) }}</span>
             <div class="o-actions" @click.stop>
               <van-button
-                v-if="o.status === 1"
+                v-if="o.status === 10"
                 size="small"
                 type="danger"
                 round
@@ -80,7 +79,7 @@ onMounted(load)
               >
                 去支付
               </van-button>
-              <van-button v-if="o.status === 8" size="small" plain type="primary" round @click="router.push(`/orders/${o.id}?review=1`)">
+              <van-button v-if="o.status === 50" size="small" plain type="primary" round @click="router.push(`/orders/${o.id}?review=1`)">
                 评价
               </van-button>
               <van-button size="small" plain round @click="router.push(`/orders/${o.id}`)">查看详情</van-button>

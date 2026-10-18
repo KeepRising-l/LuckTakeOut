@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { merchantApi, pickImage } from '@/api'
+import { merchantApi, productApi, pickImage } from '@/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,7 +17,14 @@ async function onSearch(kw?: string) {
   keyword.value = k
   loading.value = true
   try {
-    merchants.value = await merchantApi.nearby({ page: 1, size: 20, keyword: k })
+    const [byName, products] = await Promise.all([
+      merchantApi.nearby({ page: 1, size: 20, keyword: k }),
+      productApi.search(k).catch(() => []),
+    ])
+    // 菜品命中时把所属商户带进结果，按 id 去重
+    const extraIds = [...new Set(products.map((p) => p.merchantId).filter((id) => !byName.some((m) => m.id === id)))]
+    const extra = await Promise.all(extraIds.slice(0, 10).map((id) => merchantApi.detail(id).catch(() => null)))
+    merchants.value = [...byName, ...extra.filter((m): m is NonNullable<typeof m> => !!m)]
     searched.value = true
   } catch {
     merchants.value = []
@@ -56,7 +63,7 @@ onMounted(() => {
     </div>
 
     <template v-else>
-      <div v-for="m in merchants" :key="m.id" class="merchant-card" @click="router.push(`/merchant/${m.id}`)">
+      <div v-for="m in merchants" :key="m.id" class="merchant-card" @click="router.push(`/shop/${m.id}`)">
         <van-image class="m-img" radius="8" fit="cover" :src="pickImage(m)">
           <template #loading><van-icon name="shop-o" /></template>
         </van-image>
