@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { showConfirmDialog, showToast } from 'vant'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
+import TabBar from '@/components/TabBar.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
