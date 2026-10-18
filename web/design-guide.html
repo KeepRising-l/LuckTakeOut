@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LuckTakeOut 设计规范系统 · 烟火食味</title>
+<style>
+  :root {
+    --brand-50: #fff3e8; --brand-100: #ffe2c8; --brand-200: #ffc498;
+    --brand-300: #ffa366; --brand-400: #ff863d; --brand-500: #ff6f1c;
+    --brand-600: #f2570a; --brand-700: #c74406; --brand-800: #9c370b; --brand-900: #7a2d0b;
+    --color-fresh: #3fa36a; --color-fresh-soft: #e9f6ee;
+    --color-wheat: #e8a213; --color-wheat-soft: #fcf3de;
+    --color-tomato: #e04b33; --color-tomato-soft: #fdece8;
+    --color-indigo: #3a7ca5; --color-indigo-soft: #eaf3f9;
+    --canvas: #faf5ee; --surface: #fff; --surface-2: #f7f0e4; --surface-3: #f1e7d6;
+    --ink-1: #322820; --ink-2: #7a6a58; --ink-3: #8a7866; --ink-4: #c4b5a3;
+    --hairline: #efe3d0; --hairline-strong: #e3d3ba;
+    --shadow-1: 0 1px 2px rgba(122,66,18,.05); --shadow-2: 0 4px 14px rgba(122,66,18,.08); --shadow-3: 0 10px 30px rgba(122,66,18,.12);
+    --font-sans: -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans SC',sans-serif;
+    --font-serif: 'Noto Serif SC','Songti SC','STSong','SimSun',serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: var(--font-sans); background: var(--canvas); color: var(--ink-1); line-height:1.6; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 40px 20px; }
+  header { text-align:center; padding: 48px 0 32px; }
+  header h1 { font-family: var(--font-serif); font-size: 38px; letter-spacing: 2px; }
+  header p { color: var(--ink-2); margin-top: 8px; font-size: 15px; }
+  .chip { display:inline-block; background: var(--brand-50); color: var(--brand-700); border:1px solid var(--brand-100); padding: 4px 12px; border-radius: 999px; font-size: 12px; margin-top: 12px; }
+  section { margin-top: 44px; }
+  h2 { font-size: 22px; font-family: var(--font-serif); margin-bottom: 18px; padding-bottom: 8px; border-bottom: 2px solid var(--hairline); }
+  h3 { font-size: 15px; color: var(--ink-2); margin: 18px 0 10px; font-weight: 600; }
+  .palette { display:grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+  .swatch { border-radius: 12px; padding: 14px; border: 1px solid var(--hairline); box-shadow: var(--shadow-1); }
+  .swatch .dot { width: 100%; height: 56px; border-radius: 8px; margin-bottom: 8px; }
+  .swatch .name { font-size: 12px; font-weight: 600; }
+  .swatch .hex { font-size: 11px; color: var(--ink-3); font-family: monospace; }
+  .type-show { background: var(--surface); border-radius: 12px; padding: 18px; border: 1px solid var(--hairline); box-shadow: var(--shadow-1); }
+  .type-show .serif-sample { font-family: var(--font-serif); font-size: 28px; }
+  .type-show .sans-sample { font-size: 15px; color: var(--ink-2); margin-top: 6px; }
+  .comps { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .card { background: var(--surface); border-radius: 16px; padding: 18px; border: 1px solid var(--hairline); box-shadow: var(--shadow-1); }
+  .btn { display:inline-flex; align-items:center; justify-content:center; padding: 10px 22px; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
+  .btn-primary { background: linear-gradient(135deg, #ff8a3d, #ff6f1c); color: #fff; box-shadow: 0 6px 16px rgba(255,111,28,.3); }
+  .btn-default { background: var(--surface); color: var(--ink-1); border: 1px solid var(--hairline-strong); }
+  .btn-danger { background: var(--color-tomato); color: #fff; }
+  .tag { display:inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; }
+  .tag-brand { background: var(--brand-50); color: var(--brand-700); border: 1px solid var(--brand-100); }
+  .tag-wheat { background: var(--color-wheat-soft); color: #8f650a; }
+  .tag-fresh { background: var(--color-fresh-soft); color: #2a6e48; }
+  .tag-tomato { background: var(--color-tomato-soft); color: #a83222; }
+  .tag-indigo { background: var(--color-indigo-soft); color: #285a7a; }
+  .input { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--hairline-strong); background: var(--surface-2); font-size: 14px; color: var(--ink-1); }
+  .price { color: var(--brand-600); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .status-row { display:flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .do-dont { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .do, .dont { background: var(--surface); border-radius: 12px; padding: 14px; border: 1px solid var(--hairline); }
+  .do h4 { color: var(--color-fresh); margin-bottom: 6px; }
+  .dont h4 { color: var(--color-tomato); margin-bottom: 6px; }
+  footer { margin-top: 60px; text-align:center; color: var(--ink-3); font-size: 13px; padding: 24px; border-top: 1px solid var(--hairline); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>拾味 · 设计规范系统</h1>
+    <p>LuckTakeOut 外卖平台 · 三端统一视觉语言</p>
+    <span class="chip">Design System v1.0</span>
+  </header>
+
+  <section>
+    <h2>品牌色阶 · 食味橙</h2>
+    <div class="palette">
+      <div class="swatch"><div class="dot" style="background:#fff3e8"></div><div class="name">brand-50</div><div class="hex">#FFF3E8</div></div>
+      <div class="swatch"><div class="dot" style="background:#ffe2c8"></div><div class="name">brand-100</div><div class="hex">#FFE2C8</div></div>
+      <div class="swatch"><div class="dot" style="background:#ffc498"></div><div class="name">brand-200</div><div class="hex">#FFC498</div></div>
+      <div class="swatch"><div class="dot" style="background:#ffa366"></div><div class="name">brand-300</div><div class="hex">#FFA366</div></div>
+      <div class="swatch"><div class="dot" style="background:#ff863d"></div><div class="name">brand-400</div><div class="hex">#FF863D</div></div>
+      <div class="swatch"><div class="dot" style="background:#ff6f1c"></div><div class="name">brand-500</div><div class="hex">#FF6F1C</div></div>
+      <div class="swatch"><div class="dot" style="background:#f2570a"></div><div class="name">brand-600</div><div class="hex">#F2570A</div></div>
+      <div class="swatch"><div class="dot" style="background:#c74406"></div><div class="name">brand-700</div><div class="hex">#C74406</div></div>
+      <div class="swatch"><div class="dot" style="background:#9c370b"></div><div class="name">brand-800</div><div class="hex">#9C370B</div></div>
+      <div class="swatch"><div class="dot" style="background:#7a2d0b"></div><div class="name">brand-900</div><div class="hex">#7A2D0B</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>餐饮语义色</h2>
+    <div class="palette">
+      <div class="swatch"><div class="dot" style="background:#3fa36a"></div><div class="name">葱绿 · 成功</div><div class="hex">#3FA36A</div></div>
+      <div class="swatch"><div class="dot" style="background:#e8a213"></div><div class="name">麦芽金 · 促销</div><div class="hex">#E8A213</div></div>
+      <div class="swatch"><div class="dot" style="background:#e04b33"></div><div class="name">番茄红 · 危险</div><div class="hex">#E04B33</div></div>
+      <div class="swatch"><div class="dot" style="background:#3a7ca5"></div><div class="name">靛蓝 · 信息</div><div class="hex">#3A7CA5</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>暖中性色 · 纸感米灰</h2>
+    <div class="palette">
+      <div class="swatch"><div class="dot" style="background:#faf5ee; border:1px solid #e3d3ba"></div><div class="name">canvas</div><div class="hex">#FAF5EE</div></div>
+      <div class="swatch"><div class="dot" style="background:#fff; border:1px solid #e3d3ba"></div><div class="name">surface</div><div class="hex">#FFFFFF</div></div>
+      <div class="swatch"><div class="dot" style="background:#f7f0e4; border:1px solid #e3d3ba"></div><div class="name">surface-2</div><div class="hex">#F7F0E4</div></div>
+      <div class="swatch"><div class="dot" style="background:#322820"></div><div class="name">ink-1</div><div class="hex">#322820</div></div>
+      <div class="swatch"><div class="dot" style="background:#7a6a58"></div><div class="name">ink-2</div><div class="hex">#7A6A58</div></div>
+      <div class="swatch"><div class="dot" style="background:#8a7866"></div><div class="name">ink-3</div><div class="hex">#8A7866</div></div>
+      <div class="swatch"><div class="dot" style="background:#efe3d0; border:1px solid #e3d3ba"></div><div class="name">hairline</div><div class="hex">#EFE3D0</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>字体排印</h2>
+    <div class="type-show">
+      <div class="serif-sample">拾味外卖 · 好好吃饭</div>
+      <div class="sans-sample">Noto Serif SC / 宋体 → 品牌衬线：店名、标题、门面大字<br>
+      PingFang SC / Microsoft YaHei → 界面正文：地址、电话、数据信息</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>组件示例</h2>
+    <div class="comps">
+      <div class="card">
+        <h3>按钮</h3>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px;">
+          <button class="btn btn-primary">主按钮</button>
+          <button class="btn btn-default">次按钮</button>
+          <button class="btn btn-danger">危险操作</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>标签</h3>
+        <div class="status-row">
+          <span class="tag tag-brand">品牌</span>
+          <span class="tag tag-wheat">促销</span>
+          <span class="tag tag-fresh">成功</span>
+          <span class="tag tag-tomato">待支付</span>
+          <span class="tag tag-indigo">配送中</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>输入框</h3>
+        <input class="input" placeholder="请输入手机号" style="margin-top:8px;">
+      </div>
+      <div class="card">
+        <h3>价格</h3>
+        <div style="margin-top:8px; font-size:22px;"><span class="price">¥28.50</span></div>
+      </div>
+      <div class="card">
+        <h3>卡片</h3>
+        <div style="margin-top:8px; color:var(--ink-2); font-size:13px;">
+          白底 + 16px 圆角 + 1px hairline 描边 + shadow-1。禁止卡片套卡片。
+        </div>
+      </div>
+      <div class="card">
+        <h3>阴影层次</h3>
+        <div style="display:flex; gap:10px; margin-top:8px;">
+          <div style="width:60px;height:40px;background:#fff;border-radius:8px;box-shadow:var(--shadow-1);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink-3);">1</div>
+          <div style="width:60px;height:40px;background:#fff;border-radius:8px;box-shadow:var(--shadow-2);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink-3);">2</div>
+          <div style="width:60px;height:40px;background:#fff;border-radius:8px;box-shadow:var(--shadow-3);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink-3);">3</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Do & Don't</h2>
+    <div class="do-dont">
+      <div class="do">
+        <h4>✅ Do</h4>
+        <ul style="padding-left:18px; color:var(--ink-2); font-size:13px; line-height:1.8;">
+          <li>样式一律引用令牌变量</li>
+          <li>一屏只允许一个橙色焦点</li>
+          <li>价格使用 brand-600 强调</li>
+          <li>语义色严格对应业务状态</li>
+          <li>数字使用 tabular-nums 对齐</li>
+        </ul>
+      </div>
+      <div class="dont">
+        <h4>❌ Don't</h4>
+        <ul style="padding-left:18px; color:var(--ink-2); font-size:13px; line-height:1.8;">
+          <li>写死 #ff6d1f / #1989fa / #f7f8fa</li>
+          <li>大面积高饱和平铺橙色</li>
+          <li>价格使用绿/蓝/黑</li>
+          <li>卡片阴影套卡片</li>
+          <li>emoji 当图标使用</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>三端映射</h2>
+    <div class="card" style="margin-top:12px;">
+      <table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--hairline); text-align:left;">
+            <th style="padding:8px 0;">端</th>
+            <th style="padding:8px 0;">画布</th>
+            <th style="padding:8px 0;">主色用法</th>
+            <th style="padding:8px 0;">特有约定</th>
+          </tr>
+        </thead>
+        <tbody style="color:var(--ink-2);">
+          <tr style="border-bottom:1px solid var(--hairline);">
+            <td style="padding:8px 0; font-weight:600; color:var(--ink-1);">顾客 H5</td>
+            <td>--canvas</td>
+            <td>主按钮渐变、价格、TabBar 激活</td>
+            <td>顶部 Hero 暖橙渐变；分类 8 暖色圆</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--hairline);">
+            <td style="padding:8px 0; font-weight:600; color:var(--ink-1);">商户端</td>
+            <td>--canvas</td>
+            <td>Element Plus 全套主题变量映射</td>
+            <td>统计卡数字 + 图表主色；侧边栏品牌条</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0; font-weight:600; color:var(--ink-1);">骑手端</td>
+            <td>--canvas</td>
+            <td>与顾客端一致</td>
+            <td>顶部信息卡暖橙渐变；任务卡靛蓝图标</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    设计令牌真源：packages/shared/design/tokens.css &nbsp;|&nbsp; 规范文档：packages/shared/design/DESIGN-SYSTEM.md
+  </footer>
+</div>
+</body>
+</html>

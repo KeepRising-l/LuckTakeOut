@@ -95,13 +95,16 @@ onMounted(load)
   align-items: center;
   justify-content: center;
   padding: 40px 16px;
-  background: linear-gradient(135deg, #fff1e5 0%, #ffe3c9 45%, #ffd3b3 100%);
+  background:
+    radial-gradient(120% 100% at 80% 0%, rgba(255, 255, 255, 0.35) 0%, transparent 55%),
+    linear-gradient(135deg, #fff3e8 0%, #ffe8d1 45%, #ffd9b3 100%);
 }
 .review-card {
   width: 620px;
-  background: #fff;
-  border-radius: 12px;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
   padding: 8px 28px 28px;
-  box-shadow: 0 12px 40px rgba(204, 87, 25, 0.15);
+  box-shadow: var(--shadow-2);
+  border: 1px solid var(--hairline);
 }
 </style>

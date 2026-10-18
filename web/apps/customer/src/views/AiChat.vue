@@ -83,7 +83,7 @@ onMounted(async () => {
 
     <div ref="listRef" class="msg-list">
       <div v-for="(m, i) in messages" :key="i" class="msg-row" :class="m.role">
-        <div class="avatar">
+        <div class="avatar" :class="m.role">
           <van-icon :name="m.role === 'ai' ? 'service-o' : 'user-o'" />
         </div>
         <div class="bubble-wrap">
@@ -92,9 +92,11 @@ onMounted(async () => {
             <div class="d-head"><van-icon name="shop-o" /> {{ m.draft.merchantName }} · 订单确认</div>
             <div v-for="(it, k) in m.draft.items" :key="k" class="d-item">
               <span>{{ it.name }} x{{ it.quantity }}</span>
-              <span v-if="it.price != null">¥{{ money(it.price * it.quantity) }}</span>
+              <span v-if="it.price != null" class="d-item-price">¥{{ money(it.price * it.quantity) }}</span>
             </div>
-            <div class="d-addr" v-if="m.draft.address">送至：{{ m.draft.address }}</div>
+            <div class="d-addr" v-if="m.draft.address">
+              <van-icon name="location-o" /> 送至：{{ m.draft.address }}
+            </div>
             <div class="d-foot">
               <span class="d-total">合计 <em>¥{{ money(m.draft.total) }}</em></span>
               <van-button
@@ -111,8 +113,8 @@ onMounted(async () => {
         </div>
       </div>
       <div v-if="sending" class="msg-row ai">
-        <div class="avatar"><van-icon name="service-o" /></div>
-        <div class="bubble-wrap"><div class="bubble typing">对方正在输入...</div></div>
+        <div class="avatar ai"><van-icon name="service-o" /></div>
+        <div class="bubble-wrap"><div class="bubble typing">正在思考…</div></div>
       </div>
     </div>
 
@@ -128,33 +130,39 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  background: var(--canvas);
 }
 .msg-list {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: 14px var(--gutter);
 }
 .msg-row {
   display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
+  gap: 9px;
+  margin-bottom: 16px;
 }
 .msg-row.user {
   flex-direction: row-reverse;
 }
 .avatar {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: #fff;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-.avatar .van-icon {
   font-size: 20px;
-  color: #ff6d1f;
+}
+.avatar.ai {
+  background: var(--brand-50);
+  color: var(--brand-600);
+  border: 1px solid var(--brand-100);
+}
+.avatar.user {
+  background: var(--surface-3);
+  color: var(--ink-2);
 }
 .bubble-wrap {
   max-width: 76%;
@@ -163,49 +171,65 @@ onMounted(async () => {
   gap: 8px;
 }
 .bubble {
-  background: #fff;
-  border-radius: 4px 12px 12px 12px;
-  padding: 10px 12px;
-  font-size: 14px;
-  line-height: 1.5;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 4px var(--radius-md) var(--radius-md) var(--radius-md);
+  padding: 10px 13px;
+  font-size: var(--text-lg);
+  line-height: 1.55;
   word-break: break-all;
+  box-shadow: var(--shadow-1);
 }
 .msg-row.user .bubble {
-  background: #ff6d1f;
+  background: linear-gradient(135deg, #ff8a3d, #f2570a);
+  border: none;
   color: #fff;
-  border-radius: 12px 4px 12px 12px;
+  border-radius: var(--radius-md) 4px var(--radius-md) var(--radius-md);
 }
 .typing {
-  color: #969799;
-  font-size: 12px;
+  color: var(--ink-3);
+  font-size: var(--text-md);
 }
 .draft-card {
-  background: #fff;
-  border-radius: 10px;
-  padding: 12px;
-  border: 1px solid #ffe1cf;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  border: 1px solid var(--brand-100);
+  box-shadow: var(--shadow-1);
 }
 .d-head {
-  font-size: 14px;
+  font-size: var(--text-lg);
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding-bottom: 8px;
-  border-bottom: 1px dashed #f2f3f5;
+  gap: 5px;
+  padding-bottom: 9px;
+  border-bottom: 1px dashed var(--hairline);
+}
+.d-head .van-icon {
+  color: var(--brand-500);
 }
 .d-item {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
+  gap: 12px;
+  font-size: var(--text-md);
   padding: 6px 0;
-  color: #646566;
+  color: var(--ink-2);
+}
+.d-item-price {
+  color: var(--ink-1);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .d-addr {
-  font-size: 12px;
-  color: #969799;
-  padding: 6px 0;
-  border-top: 1px dashed #f2f3f5;
+  font-size: var(--text-sm);
+  color: var(--color-indigo);
+  padding: 7px 0;
+  border-top: 1px dashed var(--hairline);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 .d-foot {
   display: flex;
@@ -214,28 +238,33 @@ onMounted(async () => {
   margin-top: 4px;
 }
 .d-total {
-  font-size: 13px;
+  font-size: var(--text-md);
 }
 .d-total em {
-  color: #ff6d1f;
+  color: var(--brand-600);
   font-style: normal;
-  font-size: 17px;
+  font-size: var(--text-2xl);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 .input-bar {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
-  background: #fff;
-  border-top: 1px solid #f2f3f5;
+  padding: 9px var(--gutter) calc(9px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--hairline);
 }
-.input-bar .van-field {
-  background: #f7f8fa;
-  border-radius: 20px;
-  padding: 8px 14px;
+.input-bar :deep(.van-field) {
+  background: var(--surface-2);
+  border-radius: var(--radius-pill);
+  padding: 7px 14px;
+}
+.input-bar :deep(.van-cell) {
+  padding: 0 14px;
 }
 .input-bar .van-button {
   padding: 0 18px;
+  font-weight: 600;
 }
 </style>

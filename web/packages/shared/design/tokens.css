@@ -1,0 +1,100 @@
+/* ============================================================
+   LuckTakeOut 设计系统 · 设计令牌 Design Tokens
+   主题名：烟火食味（Warm Kitchen）
+   位置：packages/shared/design/tokens.css
+   说明：三端（顾客 H5 / 商户端 / 骑手端）共享的唯一真源。
+        组件样式只允许引用本文件变量，禁止写死色值/字号/圆角。
+   ============================================================ */
+
+:root {
+  /* ---------- 品牌色 · 食味橙 ---------- */
+  --brand-50: #fff3e8;
+  --brand-100: #ffe2c8;
+  --brand-200: #ffc498;
+  --brand-300: #ffa366;
+  --brand-400: #ff863d;
+  --brand-500: #ff6f1c; /* 品牌主色：食欲暖橙 */
+  --brand-600: #f2570a; /* 按压态 / 价格强调 */
+  --brand-700: #c74406;
+  --brand-800: #9c370b;
+  --brand-900: #7a2d0b;
+
+  /* 语义别名（业务用这一层，不直接用色阶） */
+  --color-primary: var(--brand-500);
+  --color-primary-pressed: var(--brand-600);
+  --color-primary-soft: var(--brand-50);
+
+  /* ---------- 餐饮语义色 ---------- */
+  --color-fresh: #3fa36a; /* 葱绿：新鲜 / 成功 / 已送达 */
+  --color-fresh-soft: #e9f6ee;
+  --color-wheat: #e8a213; /* 麦芽金：促销 / 提醒 / 默认地址 */
+  --color-wheat-soft: #fcf3de;
+  --color-tomato: #e04b33; /* 番茄红：待支付 / 取消 / 危险操作 */
+  --color-tomato-soft: #fdece8;
+  --color-indigo: #3a7ca5; /* 靛蓝：配送中 / 进行中 / 信息 */
+  --color-indigo-soft: #eaf3f9;
+
+  /* ---------- 暖中性色 · 纸感米灰 ---------- */
+  --canvas: #faf5ee; /* 页面底色 */
+  --surface: #ffffff; /* 卡片 / 浮层 */
+  --surface-2: #f7f0e4; /* 输入框 / 次级填充 */
+  --surface-3: #f1e7d6; /* 选中态 / 分区底 */
+  --ink-1: #322820; /* 主文字（对白底 11.6:1） */
+  --ink-2: #7a6a58; /* 次文字（对白底 5.4:1） */
+  --ink-3: #8a7866; /* 辅助文字（对白底 4.6:1，达标最小字号 12px） */
+  --ink-4: #c4b5a3; /* 装饰文字 / 禁用 */
+  --hairline: #efe3d0; /* 分割线 / 卡片描边 */
+  --hairline-strong: #e3d3ba;
+
+  /* ---------- 字体 ---------- */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  --font-serif: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif; /* 品牌衬线：店名 / 标题 / 品牌字 */
+
+  /* ---------- 字号 ---------- */
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-md: 13px;
+  --text-lg: 14px;
+  --text-xl: 16px;
+  --text-2xl: 18px;
+  --text-3xl: 22px;
+  --text-4xl: 28px;
+
+  /* ---------- 间距 ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --gutter: 12px; /* 移动端页面左右边距 */
+
+  /* ---------- 圆角 ---------- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  /* ---------- 阴影（暖调，带橙棕染色，不用纯黑） ---------- */
+  --shadow-1: 0 1px 2px rgba(122, 66, 18, 0.05);
+  --shadow-2: 0 4px 14px rgba(122, 66, 18, 0.08);
+  --shadow-3: 0 10px 30px rgba(122, 66, 18, 0.12);
+  --shadow-brand: 0 6px 16px rgba(255, 111, 28, 0.3);
+
+  /* ---------- 动效 ---------- */
+  --ease-spring: cubic-bezier(0.2, 0.8, 0.25, 1);
+  --dur-fast: 0.16s;
+  --dur-base: 0.24s;
+  --dur-slow: 0.4s;
+}
+
+/* 数字统一表格数字，价格/统计不跳动 */
+.tk-num,
+.van-stepper__input,
+.stat-value,
+.tk-price {
+  font-variant-numeric: tabular-nums;
+}

@@ -85,14 +85,17 @@ onMounted(load)
     <div class="list">
       <van-swipe-cell v-for="a in list" :key="a.id">
         <div class="addr-card" @click="openEdit(a)">
+          <div class="a-icon">
+            <van-icon name="location-o" />
+          </div>
           <div class="a-left">
             <div class="a-line1">
               {{ a.name }} <span class="a-phone">{{ a.phone }}</span>
-              <van-tag v-if="a.isDefault" type="warning" class="a-tag">默认</van-tag>
+              <van-tag v-if="a.isDefault" type="warning" round class="a-tag">默认</van-tag>
             </div>
             <div class="a-line2">{{ a.province }}{{ a.city }}{{ a.district }}{{ a.detail }}</div>
           </div>
-          <van-icon name="edit" @click.stop="openEdit(a)" />
+          <van-icon name="edit" class="a-edit" @click.stop="openEdit(a)" />
         </div>
         <template #right>
           <van-button square type="danger" text="删除" class="del-btn" @click="remove(a)" />
@@ -128,43 +131,64 @@ onMounted(load)
 <style scoped>
 .addr-page {
   min-height: 100vh;
-  padding-bottom: 90px;
+  padding-bottom: 96px;
+  background: var(--canvas);
 }
 .list {
-  padding: 12px;
+  padding: 12px var(--gutter);
 }
 .addr-card {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #fff;
-  border-radius: 10px;
-  padding: 14px 12px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 14px;
   margin-bottom: 10px;
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-1);
+}
+.a-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
 }
 .a-left {
   flex: 1;
   min-width: 0;
 }
 .a-line1 {
-  font-size: 15px;
+  font-size: var(--text-xl);
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 .a-phone {
-  font-size: 13px;
+  font-size: var(--text-md);
   font-weight: 400;
-  color: #969799;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
 .a-tag {
   flex-shrink: 0;
 }
 .a-line2 {
-  font-size: 13px;
-  color: #969799;
+  font-size: var(--text-md);
+  color: var(--ink-3);
   margin-top: 4px;
+  line-height: 1.45;
+}
+.a-edit {
+  color: var(--ink-3);
+  font-size: 17px;
 }
 .del-btn {
   height: 100%;
@@ -176,20 +200,22 @@ onMounted(load)
   bottom: 0;
   max-width: 750px;
   margin: 0 auto;
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-  background: #fff;
+  padding: 10px var(--gutter) calc(10px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--hairline);
 }
 .form-panel {
-  padding: 20px 0 28px;
+  padding: 16px 0 calc(28px + env(safe-area-inset-bottom));
 }
 .f-title {
   text-align: center;
-  font-size: 16px;
+  font-size: var(--text-xl);
   font-weight: 600;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .f-save {
-  margin: 20px 16px 0;
+  margin: 16px 16px 0;
   width: calc(100% - 32px);
 }
 </style>

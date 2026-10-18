@@ -3,7 +3,7 @@ import { ConfigProvider } from 'vant'
 </script>
 
 <template>
-  <ConfigProvider :theme-vars="{ primaryColor: '#ff6d1f' }">
+  <ConfigProvider :theme-vars="{ primaryColor: 'var(--brand-500)' }">
     <router-view />
   </ConfigProvider>
 </template>

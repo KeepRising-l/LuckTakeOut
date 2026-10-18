@@ -2,7 +2,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  NavBar,
   showConfirmDialog,
   showSuccessToast,
   showFailToast,
@@ -116,14 +115,14 @@ onMounted(load)
     <template v-else-if="task">
       <!-- 状态步骤条 -->
       <div class="detail-section">
-        <van-steps :active="stepActive" active-color="#1989fa" inactive-color="#c8c9cc">
+        <van-steps :active="stepActive" active-color="var(--brand-500)" inactive-color="var(--hairline-strong)">
           <van-step>已接单</van-step>
           <van-step>取餐</van-step>
           <van-step>配送</van-step>
           <van-step>送达</van-step>
         </van-steps>
         <div class="detail-status-row">
-          <van-tag :type="task.status === 'completed' ? 'success' : 'primary'" size="large">
+          <van-tag :type="task.status === 'completed' ? 'success' : 'primary'" size="large" round>
             {{ statusText[task.status] }}
           </van-tag>
           <span class="detail-order-no">订单号 {{ task.orderNo }}</span>
@@ -178,11 +177,11 @@ onMounted(load)
         </div>
         <div class="goods-summary goods-fee">
           <span>配送费</span>
-          <span class="fee-value">¥{{ money(task.deliveryFee) }}</span>
+          <span class="fee-value tk-price">¥{{ money(task.deliveryFee) }}</span>
         </div>
         <div class="goods-summary goods-fee">
           <span>顾客实付</span>
-          <span class="fee-value">¥{{ money(task.totalAmount) }}</span>
+          <span class="fee-value tk-price">¥{{ money(task.totalAmount) }}</span>
         </div>
       </div>
 
@@ -191,7 +190,7 @@ onMounted(load)
       <!-- 底部操作 -->
       <div class="detail-footer safe-bottom">
         <template v-if="task.status === 'pending'">
-          <span class="footer-fee">配送费 ¥{{ money(task.deliveryFee) }}</span>
+          <span class="footer-fee tk-price">配送费 ¥{{ money(task.deliveryFee) }}</span>
           <van-button type="primary" round :loading="acting" @click="accept">接单</van-button>
         </template>
         <template v-else-if="task.status === 'delivering'">
@@ -212,6 +211,7 @@ onMounted(load)
 .detail-page {
   min-height: 100vh;
   padding-bottom: 80px;
+  background: var(--canvas);
 }
 
 .detail-loading {
@@ -219,15 +219,16 @@ onMounted(load)
 }
 
 .detail-section {
-  margin: 12px 12px 0;
-  background: #fff;
-  border-radius: 12px;
+  margin: 12px var(--gutter) 0;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
   padding: 14px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-1);
 }
 
 .detail-section-title {
-  font-size: 14px;
+  font-size: var(--text-lg);
   font-weight: 600;
   margin-bottom: 10px;
 }
@@ -240,8 +241,8 @@ onMounted(load)
 }
 
 .detail-order-no {
-  font-size: 12px;
-  color: #969799;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
 }
 
 .detail-row {
@@ -251,13 +252,13 @@ onMounted(load)
 }
 
 .detail-row + .detail-row {
-  border-top: 1px solid #f5f6f7;
+  border-top: 1px solid var(--hairline);
 }
 
 .detail-row-icon {
   width: 34px;
   height: 34px;
-  border-radius: 10px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -266,18 +267,18 @@ onMounted(load)
 }
 
 .detail-row-icon.shop {
-  background: #fff7f0;
-  color: #ff976a;
+  background: var(--brand-50);
+  color: var(--brand-600);
 }
 
 .detail-row-icon.location {
-  background: #eef6ff;
-  color: #1989fa;
+  background: var(--color-indigo-soft);
+  color: var(--color-indigo);
 }
 
 .detail-row-icon.contact {
-  background: #f0f9eb;
-  color: #07c160;
+  background: var(--color-fresh-soft);
+  color: var(--color-fresh);
 }
 
 .detail-row-body {
@@ -286,16 +287,16 @@ onMounted(load)
 }
 
 .detail-row-title {
-  font-size: 14px;
+  font-size: var(--text-lg);
   font-weight: 500;
-  color: #323233;
+  color: var(--ink-1);
   word-break: break-all;
 }
 
 .detail-row-sub {
   margin-top: 3px;
-  font-size: 12px;
-  color: #969799;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
 }
 
 .detail-tel {
@@ -303,8 +304,8 @@ onMounted(load)
   align-items: center;
   gap: 4px;
   margin-top: 5px;
-  font-size: 13px;
-  color: #1989fa;
+  font-size: var(--text-md);
+  color: var(--color-indigo);
   text-decoration: none;
 }
 
@@ -312,8 +313,8 @@ onMounted(load)
   display: flex;
   align-items: center;
   padding: 6px 0;
-  font-size: 13px;
-  color: #323233;
+  font-size: var(--text-md);
+  color: var(--ink-1);
 }
 
 .goods-name {
@@ -324,12 +325,12 @@ onMounted(load)
 }
 
 .goods-qty {
-  color: #969799;
+  color: var(--ink-3);
   margin: 0 14px;
 }
 
 .goods-price {
-  color: #323233;
+  color: var(--ink-1);
 }
 
 .goods-summary {
@@ -337,13 +338,12 @@ onMounted(load)
   justify-content: space-between;
   padding-top: 10px;
   margin-top: 4px;
-  border-top: 1px dashed #ebedf0;
-  font-size: 13px;
-  color: #646566;
+  border-top: 1px dashed var(--hairline);
+  font-size: var(--text-md);
+  color: var(--ink-2);
 }
 
 .goods-fee .fee-value {
-  color: #ee0a24;
   font-weight: 600;
 }
 
@@ -358,14 +358,15 @@ onMounted(load)
   bottom: 0;
   width: 100%;
   max-width: 750px;
-  background: #fff;
+  background: var(--surface);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 10px 16px;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -2px 10px rgba(122, 66, 18, 0.06);
   z-index: 10;
+  border-top: 1px solid var(--hairline);
 }
 
 .safe-bottom {
@@ -373,21 +374,20 @@ onMounted(load)
 }
 
 .footer-fee {
-  font-size: 16px;
-  font-weight: 700;
-  color: #ee0a24;
+  font-size: var(--text-xl);
 }
 
 .footer-tip {
-  font-size: 13px;
-  color: #646566;
+  font-size: var(--text-md);
+  color: var(--ink-2);
 }
 
 .footer-tip.done {
-  color: #07c160;
+  color: var(--color-fresh);
 }
 
 .detail-footer :deep(.van-button) {
   min-width: 150px;
+  font-weight: 600;
 }
 </style>

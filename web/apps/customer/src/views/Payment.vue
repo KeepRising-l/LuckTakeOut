@@ -49,19 +49,19 @@ onMounted(load)
     <div class="panel">
       <template v-if="!paid">
         <div class="label">应付金额</div>
-        <div class="amount"><span>¥</span>{{ money(order?.actualAmount) }}</div>
+        <div class="amount tk-price"><span class="yen">¥</span>{{ money(order?.actualAmount) }}</div>
         <div class="order-no" v-if="order">订单号：{{ order.orderNo }}</div>
         <van-cell-group inset class="pay-channel">
           <van-cell title="模拟支付渠道" icon="balance-o" value="余额支付" />
         </van-cell-group>
-        <van-button type="danger" block round size="large" class="pay-btn" :loading="paying" @click="pay">
+        <van-button type="primary" block round size="large" class="pay-btn" :loading="paying" @click="pay">
           模拟支付 ¥{{ money(order?.actualAmount) }}
         </van-button>
       </template>
       <template v-else>
         <div class="success-icon"><van-icon name="checked" /></div>
-        <div class="success-text">支付成功</div>
-        <div class="amount small">¥{{ money(order?.actualAmount) }}</div>
+        <div class="success-text serif">支付成功</div>
+        <div class="amount small tk-price">¥{{ money(order?.actualAmount) }}</div>
         <van-button type="primary" block round size="large" class="pay-btn" @click="router.replace(`/orders/${order?.id}`)">
           查看订单
         </van-button>
@@ -78,30 +78,35 @@ onMounted(load)
   min-height: 100vh;
 }
 .panel {
-  background: #fff;
-  margin: 12px;
-  border-radius: 12px;
+  background: var(--surface);
+  margin: 12px var(--gutter);
+  border-radius: var(--radius-xl);
   padding: 40px 24px 32px;
   text-align: center;
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-1);
 }
 .label {
-  font-size: 14px;
-  color: #969799;
+  font-size: var(--text-lg);
+  color: var(--ink-3);
+  letter-spacing: 1px;
 }
 .amount {
-  font-size: 44px;
+  font-size: 46px;
   font-weight: 700;
   margin: 12px 0 4px;
 }
-.amount span {
-  font-size: 22px;
+.yen {
+  font-size: 24px;
+  font-weight: 600;
+  margin-right: 2px;
 }
 .amount.small {
-  font-size: 24px;
+  font-size: 26px;
 }
 .order-no {
-  font-size: 12px;
-  color: #969799;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
   margin-bottom: 24px;
 }
 .pay-channel {
@@ -109,24 +114,35 @@ onMounted(load)
   text-align: left;
 }
 .pay-btn {
-  background: #ff6d1f;
-  border-color: #ff6d1f;
+  font-weight: 600;
+  letter-spacing: 1px;
 }
 .home-btn {
   margin-top: 12px;
 }
+.success-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: var(--color-fresh-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .success-icon .van-icon {
-  font-size: 64px;
-  color: #07c160;
+  font-size: 40px;
+  color: var(--color-fresh);
 }
 .success-text {
-  font-size: 20px;
-  font-weight: 600;
-  margin: 12px 0 4px;
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  margin: 16px 0 6px;
+  letter-spacing: 2px;
 }
 .status-hint {
   text-align: center;
-  font-size: 12px;
-  color: #969799;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
 }
 </style>

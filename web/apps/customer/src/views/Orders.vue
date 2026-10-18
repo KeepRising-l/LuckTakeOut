@@ -53,22 +53,27 @@ onMounted(load)
 <template>
   <div class="orders-page">
     <van-nav-bar title="我的订单" />
-    <van-tabs v-model:active="active" color="#ff6d1f" title-active-color="#ff6d1f" sticky>
+    <van-tabs v-model:active="active" color="var(--brand-500)" title-active-color="var(--ink-1)" sticky>
       <van-tab v-for="t in tabs" :key="t.label" :title="t.label" />
     </van-tabs>
 
     <van-pull-refresh v-model="loading" @refresh="load">
       <div class="list">
-        <div v-for="o in filtered" :key="o.id" class="order-card" @click="router.push(`/orders/${o.id}`)">
+        <div
+          v-for="o in filtered"
+          :key="o.id"
+          class="order-card"
+          @click="router.push(`/orders/${o.id}`)"
+        >
           <div class="o-head">
             <span class="o-merchant"><van-icon name="shop-o" /> {{ o.merchantName }}</span>
-            <span class="o-status" :class="{ done: o.status === 50, cancel: o.status === 60, pay: o.status === 10 }">
+            <span class="o-status" :class="`s${o.status}`">
               {{ ORDER_STATUS[o.status] || o.status }}
             </span>
           </div>
           <div class="o-summary">{{ summary(o) }}</div>
           <div class="o-foot">
-            <span class="o-amount">实付 ¥{{ money(o.actualAmount) }}</span>
+            <span class="o-amount">实付 <em class="tk-price">¥{{ money(o.actualAmount) }}</em></span>
             <div class="o-actions" @click.stop>
               <van-button
                 v-if="o.status === 10"
@@ -97,48 +102,55 @@ onMounted(load)
 <style scoped>
 .orders-page {
   min-height: 100vh;
-  padding-bottom: 70px;
+  padding-bottom: 76px;
 }
 .list {
-  padding: 12px;
+  padding: 12px var(--gutter);
   min-height: 40vh;
 }
 .order-card {
-  background: #fff;
-  border-radius: 10px;
-  padding: 12px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 14px;
   margin-bottom: 10px;
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+.order-card:active {
+  transform: scale(0.98);
 }
 .o-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 15px;
+  font-size: var(--text-xl);
   font-weight: 600;
 }
 .o-merchant {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  font-family: var(--font-serif);
+}
+.o-merchant .van-icon {
+  color: var(--brand-500);
 }
 .o-status {
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-weight: 400;
-  color: #ff6d1f;
+  color: var(--ink-2);
 }
-.o-status.done {
-  color: #07c160;
-}
-.o-status.cancel {
-  color: #969799;
-}
-.o-status.pay {
-  color: #ee0a24;
-}
+/* 状态色固定映射（见设计规范 §7.6） */
+.s10 { color: var(--color-tomato); font-weight: 500; }
+.s30 { color: var(--color-wheat); font-weight: 500; }
+.s40 { color: var(--color-indigo); font-weight: 500; }
+.s50 { color: var(--color-fresh); font-weight: 500; }
+.s60 { color: var(--ink-3); }
 .o-summary {
-  font-size: 13px;
-  color: #646566;
-  margin: 8px 0;
+  font-size: var(--text-md);
+  color: var(--ink-2);
+  margin: 10px 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -149,9 +161,12 @@ onMounted(load)
   align-items: center;
 }
 .o-amount {
-  font-size: 15px;
-  font-weight: 700;
-  color: #323233;
+  font-size: var(--text-md);
+  color: var(--ink-2);
+}
+.o-amount em {
+  font-style: normal;
+  font-size: var(--text-2xl);
 }
 .o-actions {
   display: flex;

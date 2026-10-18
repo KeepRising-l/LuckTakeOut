@@ -69,32 +69,36 @@ onMounted(load)
         <template #loading><van-icon name="goods-o" /></template>
       </van-image>
       <div class="body">
-        <div class="name">{{ product.name }}</div>
+        <div class="name serif">{{ product.name }}</div>
         <div class="desc">{{ product.description }}</div>
-        <div class="tags">
-          <van-tag plain type="warning" v-for="t in product.tags || []" :key="t">{{ t }}</van-tag>
+        <div class="tags" v-if="product.tags?.length">
+          <span v-for="t in product.tags" :key="t" class="tag">{{ t }}</span>
         </div>
-        <div class="price-row">
-          <span class="price"><span>¥</span>{{ money(product.price) }}</span>
-          <span class="stock">库存 {{ product.stock }}</span>
-        </div>
-        <div class="qty-row">
-          <span>购买数量</span>
-          <van-stepper v-model="quantity" min="1" :max="product.stock || 99" />
+        <div class="price-card">
+          <div class="price-row">
+            <span class="price tk-price"><span class="yen">¥</span>{{ money(product.price) }}</span>
+            <span class="stock">库存 {{ product.stock }}</span>
+          </div>
+          <div class="qty-row">
+            <span>购买数量</span>
+            <van-stepper v-model="quantity" min="1" :max="product.stock || 99" />
+          </div>
         </div>
         <div v-if="merchant" class="merchant-line" @click="router.push(`/shop/${merchant.id}`)">
-          <van-icon name="shop-o" />
-          <span>{{ merchant.name }}</span>
-          <van-icon name="arrow" />
+          <div class="ml-shop">
+            <van-icon name="shop-o" />
+            <span>{{ merchant.name }}</span>
+          </div>
+          <span class="ml-go">进店 <van-icon name="arrow" /></span>
         </div>
       </div>
     </template>
     <van-empty v-else description="商品不存在" />
 
-    <van-action-bar v-if="product" safe-area-inset-bottom>
+    <van-action-bar v-if="product" safe-area-inset-bottom class="tk-action-bar">
       <van-action-bar-icon icon="cart-o" text="购物车" :badge="cart.totalCount || ''" @click="router.push('/cart')" />
-      <van-action-bar-button type="warning" text="加入购物车" @click="addCart" />
-      <van-action-bar-button type="danger" text="立即购买" @click="buyNow" />
+      <van-action-bar-button class="btn-cart" text="加入购物车" @click="addCart" />
+      <van-action-bar-button class="btn-buy" text="立即购买" @click="buyNow" />
     </van-action-bar>
   </div>
 </template>
@@ -103,67 +107,114 @@ onMounted(load)
 .product-page {
   min-height: 100vh;
   padding-bottom: 60px;
-  background: #fff;
+  background: var(--canvas);
 }
 .hero .van-icon {
   font-size: 60px;
-  color: #dcdee0;
+  color: var(--ink-4);
   line-height: 280px;
 }
 .body {
-  padding: 16px;
+  padding: 16px var(--gutter);
 }
 .name {
-  font-size: 20px;
-  font-weight: 600;
+  font-size: var(--text-3xl);
+  font-weight: 700;
 }
 .desc {
-  font-size: 13px;
-  color: #969799;
+  font-size: var(--text-md);
+  color: var(--ink-3);
   margin-top: 8px;
+  line-height: 1.5;
 }
 .tags {
   display: flex;
   gap: 6px;
-  margin-top: 10px;
+  margin-top: 12px;
+}
+.tag {
+  font-size: var(--text-xs);
+  color: var(--brand-700);
+  background: var(--brand-50);
+  border: 1px solid var(--brand-100);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+}
+
+/* ---------- 价格卡 ---------- */
+.price-card {
+  margin-top: 16px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--hairline);
+  padding: 16px;
 }
 .price-row {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  margin-top: 16px;
+  justify-content: space-between;
 }
 .price {
-  color: #ff6d1f;
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 32px;
 }
-.price span {
-  font-size: 14px;
+.yen {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  margin-right: 2px;
 }
 .stock {
-  font-size: 12px;
-  color: #969799;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
 }
 .qty-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 20px;
-  font-size: 14px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--hairline);
+  font-size: var(--text-lg);
 }
+
+/* ---------- 商家入口 ---------- */
 .merchant-line {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 20px;
-  padding: 12px;
-  background: #f7f8fa;
-  border-radius: 8px;
-  font-size: 14px;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding: 13px 14px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--hairline);
+  font-size: var(--text-lg);
 }
-.merchant-line .van-icon:last-child {
-  margin-left: auto;
-  color: #c8c9cc;
+.ml-shop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+.ml-shop .van-icon {
+  color: var(--brand-500);
+  font-size: 18px;
+}
+.ml-go {
+  font-size: var(--text-sm);
+  color: var(--brand-600);
+}
+
+/* ---------- 底部操作栏 ---------- */
+.tk-action-bar {
+  border-top: 1px solid var(--hairline);
+}
+.btn-cart {
+  background: linear-gradient(135deg, #ffd9ac, #ffc498);
+  color: var(--brand-800);
+  font-weight: 600;
+}
+.btn-buy {
+  background: linear-gradient(135deg, #ff8a3d, #f2570a);
+  color: #fff;
+  font-weight: 600;
 }
 </style>

@@ -45,6 +45,7 @@ onMounted(() => {
       v-model="keyword"
       placeholder="搜索商家、菜品"
       show-action
+      shape="round"
       @search="onSearch()"
       @clear="searched = false"
     >
@@ -56,56 +57,75 @@ onMounted(() => {
     <div v-if="!searched" class="hot">
       <div class="hot-title">热门搜索</div>
       <div class="hot-tags">
-        <van-tag plain size="large" @click="onSearch('川菜')">川菜</van-tag>
-        <van-tag plain size="large" @click="onSearch('奶茶')">奶茶</van-tag>
-        <van-tag plain size="large" @click="onSearch('套餐')">套餐</van-tag>
+        <van-tag v-for="k in ['川菜', '奶茶', '套餐', '烧烤', '水果', '甜品']" :key="k" round size="large" class="hot-tag" @click="onSearch(k)">{{ k }}</van-tag>
       </div>
     </div>
 
     <template v-else>
-      <div v-for="m in merchants" :key="m.id" class="merchant-card" @click="router.push(`/shop/${m.id}`)">
-        <van-image class="m-img" radius="8" fit="cover" :src="pickImage(m)">
+      <div v-for="(m, i) in merchants" :key="m.id" class="merchant-card tk-rise" :style="{ '--i': i }" @click="router.push(`/shop/${m.id}`)">
+        <van-image class="m-img" radius="10" fit="cover" :src="pickImage(m)">
           <template #loading><van-icon name="shop-o" /></template>
         </van-image>
         <div class="m-info">
-          <div class="m-name">{{ m.name }}</div>
-          <div class="m-sub">{{ m.rating != null ? `${m.rating} 分` : '暂无评分' }}</div>
+          <div class="m-name serif">{{ m.name }}</div>
+          <div class="m-rate">
+            <van-rate :model-value="m.rating ?? 0" readonly allow-half size="11" />
+            <span>{{ m.rating != null ? `${m.rating} 分` : '暂无评分' }}</span>
+          </div>
           <div class="m-sub">配送费 ¥{{ m.deliveryFee }}</div>
         </div>
       </div>
-      <van-empty v-if="!loading && !merchants.length" description="没有找到相关商家" />
+      <van-empty v-if="!loading && !merchants.length" description="没有找到相关商家">
+        <van-button round size="small" type="primary" plain @click="onSearch()">重新搜索</van-button>
+      </van-empty>
     </template>
   </div>
 </template>
 
 <style scoped>
 .search-btn {
-  color: #ff6d1f;
-  font-size: 14px;
+  color: var(--brand-600);
+  font-size: var(--text-lg);
+  font-weight: 500;
+  padding-left: 8px;
+}
+.search-page :deep(.van-search) {
+  padding: 8px var(--gutter);
+}
+.search-page :deep(.van-search__content) {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
 }
 .hot {
-  padding: 24px 16px;
+  padding: 20px var(--gutter);
 }
 .hot-title {
-  font-size: 14px;
+  font-size: var(--text-lg);
   font-weight: 600;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  font-family: var(--font-serif);
 }
 .hot-tags {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 }
-.hot-tags .van-tag {
-  color: #323233;
+.hot-tag {
+  color: var(--brand-700);
+  background: var(--brand-50);
+  border: 1px solid var(--brand-100);
+  padding: 6px 14px;
+  font-size: var(--text-md);
 }
 .merchant-card {
   display: flex;
   gap: 10px;
-  background: #fff;
-  margin: 0 12px 10px;
-  border-radius: 10px;
+  background: var(--surface);
+  margin: 0 var(--gutter) 10px;
+  border-radius: var(--radius-lg);
   padding: 12px;
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-1);
 }
 .m-img {
   width: 72px;
@@ -114,7 +134,7 @@ onMounted(() => {
 }
 .m-img .van-icon {
   font-size: 28px;
-  color: #dcdee0;
+  color: var(--ink-4);
   line-height: 72px;
 }
 .m-info {
@@ -123,14 +143,21 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
+  gap: 5px;
 }
 .m-name {
-  font-size: 16px;
+  font-size: var(--text-xl);
   font-weight: 600;
 }
+.m-rate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
 .m-sub {
-  font-size: 12px;
-  color: #969799;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
 }
 </style>

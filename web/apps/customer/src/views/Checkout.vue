@@ -86,27 +86,27 @@ onMounted(load)
     <van-nav-bar title="确认订单" left-arrow @click-left="router.back()" />
 
     <div class="addr-card" @click="addresses.length ? (showAddrPicker = true) : router.push('/addresses')">
+      <div class="addr-icon">
+        <van-icon name="location-o" />
+      </div>
       <template v-if="selectedAddress">
-        <van-icon name="location-o" class="loc" />
         <div class="addr-body">
-          <div class="addr-line1">{{ selectedAddress.name }} {{ selectedAddress.phone }}</div>
+          <div class="addr-line1">{{ selectedAddress.name }} <span class="addr-phone">{{ selectedAddress.phone }}</span></div>
           <div class="addr-line2">
             {{ selectedAddress.province }}{{ selectedAddress.city }}{{ selectedAddress.district }}{{ selectedAddress.detail }}
           </div>
         </div>
-        <van-icon name="arrow" />
       </template>
       <template v-else>
-        <van-icon name="add-o" class="loc" />
         <div class="addr-body add-addr">请添加收货地址</div>
-        <van-icon name="arrow" />
       </template>
+      <van-icon name="arrow" class="addr-arrow" />
     </div>
 
     <div class="goods-card">
       <div class="g-merchant"><van-icon name="shop-o" /> {{ merchant?.name || '商家' }}</div>
       <div v-for="i in items" :key="i.productId" class="g-item">
-        <van-image class="g-img" radius="6" fit="cover" :src="i.image">
+        <van-image class="g-img" radius="8" fit="cover" :src="i.image">
           <template #loading><van-icon name="goods-o" /></template>
           <template #error><van-icon name="goods-o" /></template>
         </van-image>
@@ -114,31 +114,33 @@ onMounted(load)
           <div class="g-name">{{ i.name }}</div>
           <div class="g-qty">x{{ i.quantity }}</div>
         </div>
-        <span class="g-price">¥{{ money(i.price * i.quantity) }}</span>
+        <span class="g-price tk-price">¥{{ money(i.price * i.quantity) }}</span>
       </div>
       <div class="fee-row"><span>商品金额</span><span>¥{{ money(productTotal) }}</span></div>
       <div class="fee-row"><span>配送费</span><span>¥{{ money(deliveryFee) }}</span></div>
-      <div class="fee-row total"><span>合计</span><span class="t-price">¥{{ money(totalAmount) }}</span></div>
+      <div class="fee-row total"><span>合计</span><span class="t-price tk-price">¥{{ money(totalAmount) }}</span></div>
     </div>
 
-    <van-field
-      v-model="remark"
-      label="备注"
-      type="textarea"
-      placeholder="口味偏好、放门口等（选填）"
-      rows="1"
-      autosize
-      maxlength="100"
-    />
+    <div class="remark-card">
+      <van-field
+        v-model="remark"
+        label="备注"
+        type="textarea"
+        placeholder="口味偏好、放门口等（选填）"
+        rows="1"
+        autosize
+        maxlength="100"
+      />
+    </div>
 
-    <van-action-bar safe-area-inset-bottom>
+    <van-action-bar safe-area-inset-bottom class="tk-action-bar">
       <div class="bar-total">
         合计 <em>¥{{ money(totalAmount) }}</em>
       </div>
-      <van-button type="danger" round class="submit-btn" :loading="submitting" @click="submit">提交订单</van-button>
+      <van-button type="primary" round class="submit-btn" :loading="submitting" @click="submit">提交订单</van-button>
     </van-action-bar>
 
-    <van-popup v-model:show="showAddrPicker" position="bottom" round style="max-height: 70vh">
+    <van-popup v-model:show="showAddrPicker" position="bottom" round :style="{ maxHeight: '70vh' }">
       <div class="picker-head">选择收货地址</div>
       <div class="picker-list">
         <div
@@ -149,12 +151,12 @@ onMounted(load)
           @click="chooseAddress(a)"
         >
           <div>
-            <div class="pi-line1">{{ a.name }} {{ a.phone }} <van-tag v-if="a.isDefault" type="warning">默认</van-tag></div>
+            <div class="pi-line1">{{ a.name }} {{ a.phone }} <van-tag v-if="a.isDefault" type="warning" round>默认</van-tag></div>
             <div class="pi-line2">{{ a.province }}{{ a.city }}{{ a.district }}{{ a.detail }}</div>
           </div>
-          <van-icon v-if="selectedAddress?.id === a.id" name="success" color="#ff6d1f" />
+          <van-icon v-if="selectedAddress?.id === a.id" name="success" class="pick-ok" />
         </div>
-        <van-button block plain type="primary" class="picker-add" @click="router.push('/addresses')">管理地址</van-button>
+        <van-button block plain type="primary" class="picker-add" round @click="router.push('/addresses')">管理地址</van-button>
       </div>
     </van-popup>
   </div>
@@ -165,54 +167,84 @@ onMounted(load)
   min-height: 100vh;
   padding-bottom: 70px;
 }
+
+/* ---------- 地址卡 ---------- */
 .addr-card {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #fff;
-  margin: 12px;
-  border-radius: 10px;
-  padding: 16px 12px;
+  background: var(--surface);
+  margin: 12px var(--gutter);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-1);
 }
-.addr-card .loc {
-  color: #ff6d1f;
-  font-size: 20px;
+.addr-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  flex-shrink: 0;
 }
 .addr-body {
   flex: 1;
   min-width: 0;
 }
-.add-addr {
-  color: #969799;
-}
 .addr-line1 {
-  font-size: 15px;
+  font-size: var(--text-xl);
   font-weight: 600;
 }
-.addr-line2 {
-  font-size: 12px;
-  color: #969799;
-  margin-top: 4px;
+.addr-phone {
+  font-weight: 400;
+  color: var(--ink-2);
+  margin-left: 4px;
 }
+.addr-line2 {
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+  margin-top: 4px;
+  line-height: 1.45;
+}
+.addr-arrow {
+  color: var(--ink-4);
+}
+.add-addr {
+  color: var(--ink-3);
+}
+
+/* ---------- 商品卡 ---------- */
 .goods-card {
-  background: #fff;
-  margin: 0 12px 12px;
-  border-radius: 10px;
-  padding: 12px;
+  background: var(--surface);
+  margin: 0 var(--gutter) 12px;
+  border-radius: var(--radius-lg);
+  padding: 4px 14px 14px;
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-1);
 }
 .g-merchant {
-  font-size: 15px;
+  font-size: var(--text-xl);
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding-bottom: 10px;
+  gap: 6px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.g-merchant .van-icon {
+  color: var(--brand-500);
 }
 .g-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 0;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--hairline);
 }
 .g-img {
   width: 52px;
@@ -221,7 +253,7 @@ onMounted(load)
 }
 .g-img .van-icon {
   font-size: 20px;
-  color: #dcdee0;
+  color: var(--ink-4);
   line-height: 52px;
 }
 .g-info {
@@ -229,57 +261,80 @@ onMounted(load)
   min-width: 0;
 }
 .g-name {
-  font-size: 14px;
+  font-size: var(--text-lg);
 }
 .g-qty {
-  font-size: 12px;
-  color: #969799;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
   margin-top: 4px;
 }
 .g-price {
-  font-weight: 600;
+  font-weight: 700;
+  font-size: var(--text-xl);
 }
 .fee-row {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
-  color: #646566;
+  font-size: var(--text-md);
+  color: var(--ink-2);
   padding-top: 10px;
-  margin-top: 4px;
 }
 .fee-row.total {
-  border-top: 1px solid #f2f3f5;
-  margin-top: 10px;
-  font-size: 14px;
-  color: #323233;
+  border-top: 1px solid var(--hairline);
+  margin-top: 8px;
+  padding-top: 12px;
+  font-size: var(--text-lg);
+  color: var(--ink-1);
   font-weight: 600;
 }
 .t-price {
-  color: #ff6d1f;
-  font-size: 18px;
+  font-size: var(--text-3xl);
+}
+
+/* ---------- 备注 ---------- */
+.remark-card {
+  background: var(--surface);
+  margin: 0 var(--gutter);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--hairline);
+  overflow: hidden;
+}
+
+/* ---------- 底部栏 ---------- */
+.tk-action-bar {
+  border-top: 1px solid var(--hairline);
 }
 .bar-total {
   flex: 1;
-  padding-left: 16px;
-  font-size: 14px;
+  padding-left: var(--gutter);
+  font-size: var(--text-md);
+  color: var(--ink-2);
 }
 .bar-total em {
-  color: #ff6d1f;
+  color: var(--brand-600);
   font-style: normal;
-  font-size: 20px;
+  font-size: var(--text-3xl);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin-left: 4px;
 }
 .submit-btn {
-  width: 130px;
+  width: 120px;
+  height: 42px;
+  margin-right: var(--gutter);
+  font-weight: 600;
 }
+
+/* ---------- 地址选择弹层 ---------- */
 .picker-head {
   padding: 16px;
-  font-size: 16px;
+  font-size: var(--text-xl);
   font-weight: 600;
   text-align: center;
+  border-bottom: 1px solid var(--hairline);
 }
 .picker-list {
-  padding: 0 16px 20px;
+  padding: 4px 16px calc(20px + env(safe-area-inset-bottom));
   overflow-y: auto;
 }
 .picker-item {
@@ -287,22 +342,26 @@ onMounted(load)
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 12px 0;
-  border-bottom: 1px solid #f2f3f5;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.pick-ok {
+  color: var(--brand-500);
+  font-size: 20px;
 }
 .picker-item.on .pi-line1 {
-  color: #ff6d1f;
+  color: var(--brand-600);
 }
 .pi-line1 {
-  font-size: 15px;
+  font-size: var(--text-lg);
   font-weight: 500;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 .pi-line2 {
-  font-size: 12px;
-  color: #969799;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
   margin-top: 4px;
 }
 .picker-add {

@@ -27,9 +27,9 @@ async function onLogout() {
     <el-aside width="210px" class="aside">
       <div class="brand">
         <span class="brand-dot"></span>
-        <span>商户中心</span>
+        <span class="serif">商户中心</span>
       </div>
-      <el-menu :default-active="route.path" router background-color="#ffffff" class="menu">
+      <el-menu :default-active="route.path" router class="menu">
         <el-menu-item v-for="m in menus" :key="m.path" :index="m.path">
           <span>{{ m.label }}</span>
         </el-menu-item>
@@ -65,8 +65,8 @@ async function onLogout() {
 <style scoped>
 .layout { height: 100%; }
 .aside {
-  background: #fff;
-  border-right: 1px solid #ebeef5;
+  background: var(--surface);
+  border-right: 1px solid var(--hairline);
   display: flex;
   flex-direction: column;
 }
@@ -78,25 +78,25 @@ async function onLogout() {
   padding: 0 20px;
   font-size: 17px;
   font-weight: 700;
-  color: #ff6d1f;
-  border-bottom: 1px solid #f0f2f5;
+  color: var(--brand-600);
+  border-bottom: 1px solid var(--hairline);
 }
 .brand-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #ff6d1f;
+  background: var(--brand-500);
 }
 .menu { border-right: none; flex: 1; }
 .menu :deep(.el-menu-item.is-active) {
-  background: #fff1e5;
-  color: #ff6d1f;
-  border-right: 3px solid #ff6d1f;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  border-right: 3px solid var(--brand-500);
 }
 .header {
   height: 60px;
-  background: #fff;
-  border-bottom: 1px solid #ebeef5;
+  background: var(--surface);
+  border-bottom: 1px solid var(--hairline);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -108,7 +108,7 @@ async function onLogout() {
   width: 0; height: 0;
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
-  border-top: 5px solid #909399;
+  border-top: 5px solid var(--ink-3);
 }
-.main { background: #f5f6f8; padding: 16px; overflow: auto; }
+.main { background: var(--canvas); padding: 16px; overflow: auto; }
 </style>

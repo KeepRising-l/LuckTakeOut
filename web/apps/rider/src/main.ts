@@ -4,6 +4,7 @@ import Vant from 'vant'
 import App from './App.vue'
 import router from './router'
 import 'vant/lib/index.css'
+import '@takeout/shared/design/vant-theme.css'
 import './styles/main.css'
 
 const app = createApp(App)

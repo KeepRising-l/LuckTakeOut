@@ -74,16 +74,21 @@ onMounted(load)
     <van-nav-bar :title="merchant?.name || '商家'" left-arrow @click-left="router.back()" />
 
     <div v-if="merchant" class="m-head">
-      <van-image class="m-avatar" radius="8" fit="cover" :src="pickImage(merchant)">
+      <van-image class="m-avatar" radius="10" fit="cover" :src="pickImage(merchant)">
         <template #loading><van-icon name="shop-o" /></template>
       </van-image>
       <div class="m-text">
-        <div class="m-name">{{ merchant.name }}</div>
+        <div class="m-name serif">{{ merchant.name }}</div>
         <div class="m-sub">
-          <van-rate :model-value="merchant.rating ?? 0" readonly allow-half size="12" color="#ff6d1f" />
-          <span>{{ merchant.rating != null ? `${merchant.rating} 分` : '暂无评分' }} · 配送费 ¥{{ money(merchant.deliveryFee) }}</span>
+          <van-rate :model-value="merchant.rating ?? 0" readonly allow-half size="12" />
+          <span>{{ merchant.rating != null ? `${merchant.rating} 分` : '暂无评分' }}</span>
+          <i class="dot" />
+          <span>配送费 ¥{{ money(merchant.deliveryFee) }}</span>
         </div>
-        <div class="m-sub">{{ merchant.address }}</div>
+        <div class="m-sub m-addr">
+          <van-icon name="location-o" />
+          <span>{{ merchant.address }}</span>
+        </div>
       </div>
     </div>
 
@@ -103,14 +108,14 @@ onMounted(load)
         <section v-for="c in categories" :id="`cat-${c.id}`" :key="c.id" class="cat-section">
           <div class="cat-title">{{ c.name }}</div>
           <div v-for="p in productsOf(c.id)" :key="p.id" class="product-card">
-            <van-image class="p-img" radius="6" fit="cover" :src="pickImage(p)" @click="router.push(`/product/${p.id}`)">
+            <van-image class="p-img" radius="8" fit="cover" :src="pickImage(p)" @click="router.push(`/product/${p.id}`)">
               <template #loading><van-icon name="goods-o" /></template>
             </van-image>
             <div class="p-info">
               <div class="p-name" @click="router.push(`/product/${p.id}`)">{{ p.name }}</div>
               <div class="p-desc">{{ p.description }}</div>
               <div class="p-bottom">
-                <div class="p-price"><span>¥</span>{{ money(p.price) }}</div>
+                <div class="p-price tk-price"><span class="yen">¥</span>{{ money(p.price) }}</div>
                 <div class="stepper">
                   <transition name="fade">
                     <van-icon v-if="cart.quantityOf(merchantId, p.id) > 0" name="minus" class="step-btn" @click="dec(p)" />
@@ -136,10 +141,10 @@ onMounted(load)
       </div>
       <div class="cart-total">
         <template v-if="totalCount">
-          <span class="total-price">¥{{ money(totalPrice) }}</span>
+          <span class="total-price tk-price">¥{{ money(totalPrice) }}</span>
           <span class="total-fee">另需配送费 ¥{{ money(merchant?.deliveryFee) }}</span>
         </template>
-        <span v-else class="total-empty">未选购商品</span>
+        <span v-else class="total-empty">购物车是空的</span>
       </div>
       <van-button type="primary" round class="checkout-btn" :disabled="!totalCount" @click="goCheckout">
         去结算
@@ -157,7 +162,7 @@ onMounted(load)
         <div v-for="i in cartInfo?.items || []" :key="i.productId" class="popup-item">
           <div class="pi-name">{{ i.name }}</div>
           <div class="pi-right">
-            <span class="pi-price">¥{{ money(i.price * i.quantity) }}</span>
+            <span class="pi-price tk-price">¥{{ money(i.price * i.quantity) }}</span>
             <van-icon name="minus" class="step-btn" @click="cart.setCount(merchantId, i.productId, i.quantity - 1)" />
             <span class="step-num">{{ i.quantity }}</span>
             <van-icon
@@ -177,89 +182,117 @@ onMounted(load)
   min-height: 100vh;
   padding-bottom: 70px;
 }
+
+/* ---------- 店铺头 ---------- */
 .m-head {
   display: flex;
   gap: 12px;
-  background: #fff;
-  padding: 12px 16px;
+  background: var(--surface);
+  margin: 12px var(--gutter) 0;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-1);
+  padding: 14px;
 }
 .m-avatar {
-  width: 64px;
-  height: 64px;
+  width: 68px;
+  height: 68px;
   flex-shrink: 0;
 }
 .m-avatar .van-icon {
   font-size: 28px;
-  color: #dcdee0;
-  line-height: 64px;
+  color: var(--ink-4);
+  line-height: 68px;
 }
 .m-text {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  justify-content: center;
 }
 .m-name {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: var(--text-2xl);
+  font-weight: 700;
 }
 .m-sub {
-  font-size: 12px;
-  color: #969799;
+  font-size: var(--text-sm);
+  color: var(--ink-2);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
 }
+.m-addr {
+  color: var(--ink-3);
+  overflow: hidden;
+}
+.m-addr span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--ink-4);
+}
+
+/* ---------- 菜单双栏 ---------- */
 .menu-wrap {
   display: flex;
-  margin-top: 10px;
-  min-height: calc(100vh - 210px);
+  margin-top: 12px;
+  height: calc(100vh - 236px);
 }
 .cat-nav {
-  width: 88px;
-  background: #f7f8fa;
+  width: 92px;
+  background: var(--surface-2);
   flex-shrink: 0;
+  overflow-y: auto;
 }
 .cat-item {
-  padding: 16px 8px;
-  font-size: 13px;
-  color: #646566;
+  padding: 17px 8px;
+  font-size: var(--text-md);
+  color: var(--ink-2);
   text-align: center;
   border-left: 3px solid transparent;
+  transition: background var(--dur-fast), color var(--dur-fast);
 }
 .cat-item.active {
-  background: #fff;
-  color: #323233;
+  background: var(--surface);
+  color: var(--brand-600);
   font-weight: 600;
-  border-left-color: #ff6d1f;
+  border-left-color: var(--brand-500);
 }
 .product-list {
   flex: 1;
-  background: #fff;
-  height: calc(100vh - 210px);
+  background: var(--surface);
+  height: 100%;
   overflow-y: auto;
-  padding: 0 12px;
+  padding: 0 14px;
 }
 .cat-title {
-  font-size: 13px;
-  color: #969799;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+  font-weight: 600;
+  letter-spacing: 1px;
   padding: 14px 0 8px;
 }
 .product-card {
   display: flex;
   gap: 10px;
-  padding-bottom: 14px;
+  padding-bottom: 16px;
 }
 .p-img {
-  width: 76px;
-  height: 76px;
+  width: 78px;
+  height: 78px;
   flex-shrink: 0;
 }
 .p-img .van-icon {
   font-size: 28px;
-  color: #dcdee0;
-  line-height: 76px;
+  color: var(--ink-4);
+  line-height: 78px;
 }
 .p-info {
   flex: 1;
@@ -268,12 +301,12 @@ onMounted(load)
   flex-direction: column;
 }
 .p-name {
-  font-size: 15px;
-  font-weight: 500;
+  font-size: var(--text-lg);
+  font-weight: 600;
 }
 .p-desc {
-  font-size: 11px;
-  color: #969799;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
   margin: 4px 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -286,37 +319,41 @@ onMounted(load)
   justify-content: space-between;
 }
 .p-price {
-  color: #ff6d1f;
-  font-size: 18px;
+  font-size: var(--text-2xl);
+}
+.yen {
+  font-size: var(--text-sm);
   font-weight: 600;
+  margin-right: 1px;
 }
-.p-price span {
-  font-size: 12px;
-}
+
+/* ---------- 步进按钮（圆形） ---------- */
 .stepper {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 .step-btn {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: #ff6d1f;
+  background: var(--brand-500);
   color: #fff;
-  font-size: 14px;
+  font-size: 15px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform var(--dur-fast) var(--ease-spring);
 }
-.step-btn.add {
-  background: #ff6d1f;
+.step-btn:active {
+  transform: scale(0.88);
 }
 .step-num {
   min-width: 18px;
   text-align: center;
-  font-size: 14px;
+  font-size: var(--text-lg);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .fade-enter-active,
 .fade-leave-active {
@@ -326,26 +363,29 @@ onMounted(load)
 .fade-leave-to {
   opacity: 0;
 }
+
+/* ---------- 底部结算栏 ---------- */
 .cart-bar {
-  padding-left: 16px;
+  padding-left: var(--gutter);
+  border-top: 1px solid var(--hairline);
 }
 .cart-icon-wrap {
-  margin-top: -26px;
+  margin-top: -28px;
 }
 .cart-icon {
-  width: 48px;
-  height: 48px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
-  background: #c8c9cc;
+  background: var(--ink-3);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 4px solid #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  transition: background 0.2s;
+  border: 4px solid var(--surface);
+  box-shadow: var(--shadow-2);
+  transition: background var(--dur-base);
 }
 .cart-icon.on {
-  background: #ff6d1f;
+  background: linear-gradient(135deg, #ff8a3d, #f2570a);
 }
 .cart-icon .van-icon {
   font-size: 24px;
@@ -355,55 +395,65 @@ onMounted(load)
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding-left: 10px;
+  padding-left: 12px;
 }
 .total-price {
-  font-size: 18px;
-  font-weight: 700;
-  color: #323233;
+  font-size: var(--text-2xl);
 }
 .total-fee,
 .total-empty {
-  font-size: 11px;
-  color: #969799;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
 }
 .checkout-btn {
-  width: 110px;
-  height: 40px;
+  width: 112px;
+  height: 42px;
+  margin-right: var(--gutter);
+  font-weight: 600;
 }
+
+/* ---------- 已选弹层 ---------- */
 .cart-popup {
-  padding-bottom: 20px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
 }
 .popup-head {
   display: flex;
   justify-content: space-between;
-  padding: 16px;
-  font-size: 15px;
+  align-items: center;
+  padding: 16px var(--gutter) 10px;
+  font-size: var(--text-xl);
   font-weight: 600;
 }
 .popup-head .clear {
-  font-size: 12px;
-  color: #969799;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
   font-weight: 400;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
 }
 .popup-list {
-  max-height: 40vh;
+  max-height: 42vh;
   overflow-y: auto;
-  padding: 0 16px;
+  padding: 0 var(--gutter);
 }
 .popup-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.popup-item:last-child {
+  border-bottom: none;
 }
 .pi-name {
-  font-size: 14px;
+  font-size: var(--text-lg);
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .pi-right {
   display: flex;
@@ -411,8 +461,7 @@ onMounted(load)
   gap: 8px;
 }
 .pi-price {
-  color: #ff6d1f;
-  font-weight: 600;
-  margin-right: 6px;
+  font-size: var(--text-xl);
+  margin-right: 4px;
 }
 </style>

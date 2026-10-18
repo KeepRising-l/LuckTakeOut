@@ -167,6 +167,6 @@ onMounted(load)
 <style scoped>
 .pager { margin-top: 14px; justify-content: flex-end; }
 .items-title { margin: 18px 0 8px; }
-.total-line { text-align: right; margin-top: 12px; color: #606266; }
-.total-amount { color: #ff6d1f; font-size: 18px; font-weight: 700; }
+.total-line { text-align: right; margin-top: 12px; color: var(--ink-2); }
+.total-amount { color: var(--brand-600); font-size: 18px; font-weight: 700; }
 </style>

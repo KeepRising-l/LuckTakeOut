@@ -38,8 +38,8 @@ async function submit() {
 <template>
   <div class="login-page">
     <div class="login-hero">
-      <div class="hero-icon">🛵</div>
-      <h1>骑手端</h1>
+      <div class="login-logo serif">骑</div>
+      <h1 class="serif">骑手端</h1>
       <p>接单配送，即刻出发</p>
     </div>
 
@@ -81,49 +81,50 @@ async function submit() {
 <style scoped>
 .login-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #1989fa 0%, #4ba3fb 34%, #f7f8fa 34.5%, #f7f8fa 100%);
-  padding-top: 72px;
+  background:
+    radial-gradient(100% 60% at 50% 0%, rgba(255, 255, 255, 0.28) 0%, transparent 60%),
+    linear-gradient(165deg, #ff8a3d 0%, #ff6f1c 46%, var(--canvas) 46.2%, var(--canvas) 100%);
+  padding-top: calc(env(safe-area-inset-top) + 72px);
 }
-
 .login-hero {
   text-align: center;
   color: #fff;
-  margin-bottom: 48px;
+  margin-bottom: 44px;
 }
-
-.hero-icon {
-  font-size: 56px;
-  line-height: 1;
-  margin-bottom: 12px;
+.login-logo {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 14px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  font-weight: 700;
+  box-shadow: var(--shadow-3);
 }
-
 .login-hero h1 {
-  font-size: 24px;
-  font-weight: 600;
-  letter-spacing: 2px;
+  font-size: var(--text-4xl);
+  font-weight: 700;
+  letter-spacing: 3px;
 }
-
 .login-hero p {
-  margin-top: 6px;
-  font-size: 13px;
-  opacity: 0.85;
+  margin-top: 8px;
+  font-size: var(--text-md);
+  opacity: 0.9;
+  letter-spacing: 1px;
 }
-
 .login-card {
   padding: 0 4px;
 }
-
 .login-actions {
   margin: 28px 24px 0;
 }
-
 .test-btn {
   margin-top: 14px;
   width: 100%;
-}
-
-:deep(.van-button--primary) {
-  height: 44px;
-  font-size: 16px;
 }
 </style>

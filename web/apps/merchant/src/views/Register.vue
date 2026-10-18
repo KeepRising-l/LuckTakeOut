@@ -134,24 +134,27 @@ async function submit() {
   align-items: center;
   justify-content: center;
   padding: 32px 16px;
-  background: linear-gradient(135deg, #fff1e5 0%, #ffe3c9 45%, #ffd3b3 100%);
+  background:
+    radial-gradient(120% 100% at 80% 0%, rgba(255, 255, 255, 0.35) 0%, transparent 55%),
+    linear-gradient(135deg, #fff3e8 0%, #ffe8d1 45%, #ffd9b3 100%);
 }
 .register-card {
   width: 520px;
-  background: #fff;
-  border-radius: 12px;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
   padding: 32px 36px 24px;
-  box-shadow: 0 12px 40px rgba(204, 87, 25, 0.15);
+  box-shadow: var(--shadow-2);
+  border: 1px solid var(--hairline);
 }
 .register-head { text-align: center; margin-bottom: 12px; }
-.register-head h1 { margin: 0 0 4px; font-size: 22px; color: #303133; }
-.register-head p { margin: 0; color: #909399; font-size: 13px; }
-.submit-btn { width: 100%; margin-top: 8px; }
+.register-head h1 { margin: 0 0 4px; font-size: 22px; color: var(--ink-1); }
+.register-head p { margin: 0; color: var(--ink-3); font-size: 13px; }
+.submit-btn { width: 100%; margin-top: 8px; font-weight: 600; }
 .register-foot {
   margin-top: 16px;
   text-align: center;
   font-size: 13px;
-  color: #909399;
+  color: var(--ink-3);
 }
-.register-foot a { color: #ff6d1f; text-decoration: none; }
+.register-foot a { color: var(--brand-600); text-decoration: none; }
 </style>

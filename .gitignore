@@ -11,3 +11,4 @@ Thumbs.db
 # Agent 工作目录（本地记忆与工具缓存，不入仓库）
 .codebuddy/
 .workbuddy/
+.workbuddy-ai/

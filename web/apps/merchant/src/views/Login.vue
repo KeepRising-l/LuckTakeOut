@@ -48,8 +48,8 @@ async function submit() {
   <div class="login-page">
     <div class="login-card">
       <div class="login-head">
-        <span class="logo"></span>
-        <h1>商户中心</h1>
+        <span class="logo serif">商</span>
+        <h1 class="serif">商户中心</h1>
         <p>外卖平台商家管理端</p>
       </div>
       <el-form ref="formRef" :model="form" :rules="rules" size="large" @keyup.enter="submit">
@@ -75,38 +75,46 @@ async function submit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #fff1e5 0%, #ffe3c9 45%, #ffd3b3 100%);
+  background:
+    radial-gradient(120% 100% at 80% 0%, rgba(255, 255, 255, 0.35) 0%, transparent 55%),
+    linear-gradient(135deg, #fff3e8 0%, #ffe8d1 45%, #ffd9b3 100%);
 }
 .login-card {
   width: 380px;
-  background: #fff;
-  border-radius: 12px;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
   padding: 40px 36px 28px;
-  box-shadow: 0 12px 40px rgba(204, 87, 25, 0.15);
+  box-shadow: var(--shadow-2);
+  border: 1px solid var(--hairline);
 }
 .login-head { text-align: center; margin-bottom: 24px; }
-.login-head h1 { margin: 8px 0 4px; font-size: 22px; color: #303133; }
-.login-head p { margin: 0; color: #909399; font-size: 13px; }
+.login-head h1 { margin: 8px 0 4px; font-size: 22px; color: var(--ink-1); }
+.login-head p { margin: 0; color: var(--ink-3); font-size: 13px; }
 .logo {
   display: inline-block;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: #ff6d1f;
-  box-shadow: 0 6px 16px rgba(255, 109, 31, 0.4);
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--brand-500);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 48px;
+  text-align: center;
+  box-shadow: var(--shadow-brand);
 }
-.login-btn { width: 100%; margin-top: 4px; }
+.login-btn { width: 100%; margin-top: 4px; font-weight: 600; }
 .test-btn {
   width: 100%;
   margin: 10px 0 0;
-  color: #909399;
+  color: var(--ink-3);
   font-size: 12px;
 }
 .login-foot {
   margin-top: 18px;
   text-align: center;
   font-size: 13px;
-  color: #909399;
+  color: var(--ink-3);
 }
-.login-foot a { color: #ff6d1f; text-decoration: none; }
+.login-foot a { color: var(--brand-600); text-decoration: none; }
 </style>

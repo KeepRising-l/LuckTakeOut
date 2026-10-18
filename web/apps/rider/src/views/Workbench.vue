@@ -44,7 +44,7 @@ async function loadRider() {
     rider.value = await api.getRider(auth.riderInfo.riderId)
     workStatus.value = rider.value.workStatus
   } catch {
-    /* 静默失败，等待下一轮轮询 */
+    /* 静默失败 */
   }
 }
 
@@ -148,7 +148,6 @@ onUnmounted(() => {
 
 <template>
   <div class="workbench">
-    <!-- 顶部骑手信息 -->
     <header class="wb-header">
       <div class="wb-header-row">
         <div class="wb-rider">
@@ -158,7 +157,7 @@ onUnmounted(() => {
           </div>
         </div>
         <div class="wb-switch" @click.stop>
-          <span class="wb-switch-label">{{ workStatus === 1 ? '接单中' : '已下线' }}</span>
+          <span class="wb-switch-label">{{ workStatus === 1 ? '接单中' : '休息中' }}</span>
           <van-switch
             :model-value="workStatus === 1"
             :loading="statusSwitching"
@@ -168,20 +167,18 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- 统计卡 -->
       <div class="wb-stats">
         <div class="wb-stat">
-          <div class="wb-stat-num">{{ rider?.todayDeliveryCount ?? stats?.todayDeliveryCount ?? 0 }}</div>
+          <div class="wb-stat-num tk-price">{{ rider?.todayDeliveryCount ?? stats?.todayDeliveryCount ?? 0 }}</div>
           <div class="wb-stat-label">今日单量</div>
         </div>
         <div class="wb-stat">
-          <div class="wb-stat-num">{{ stats?.totalDeliveryCount ?? 0 }}</div>
+          <div class="wb-stat-num tk-price">{{ stats?.totalDeliveryCount ?? 0 }}</div>
           <div class="wb-stat-label">累计单量</div>
         </div>
       </div>
     </header>
 
-    <!-- 任务 Tab -->
     <van-tabs v-model:active="activeTab" class="wb-tabs" sticky>
       <van-tab :title="`待抢单 ${pendingTasks.length ? '(' + pendingTasks.length + ')' : ''}`">
         <div class="task-list">
@@ -194,28 +191,20 @@ onUnmounted(() => {
           >
             <div class="task-card-top">
               <span class="task-merchant">{{ t.merchantName }}</span>
-              <span class="task-fee">¥{{ money(t.deliveryFee) }}</span>
+              <span class="task-fee tk-price">¥{{ money(t.deliveryFee) }}</span>
             </div>
             <div class="task-line">
-              <van-icon name="shop-o" />
+              <div class="task-icon shop"><van-icon name="shop-o" /></div>
               <span class="task-line-text">取：{{ t.merchantName }}</span>
             </div>
             <div class="task-line">
-              <van-icon name="location-o" />
+              <div class="task-icon location"><van-icon name="location-o" /></div>
               <span class="task-line-text">送：{{ t.deliveryAddress }}</span>
             </div>
             <div class="task-card-bottom">
               <span class="task-meta">配送费 ¥{{ money(t.deliveryFee) }}</span>
               <div class="task-btns">
-                <van-button
-                  type="primary"
-                  size="small"
-                  round
-                  class="task-btn"
-                  @click.stop="acceptTask(t)"
-                >
-                  抢单
-                </van-button>
+                <van-button type="primary" size="small" round class="task-btn" @click.stop="acceptTask(t)">抢单</van-button>
               </div>
             </div>
           </div>
@@ -233,29 +222,20 @@ onUnmounted(() => {
           >
             <div class="task-card-top">
               <span class="task-merchant">{{ t.merchantName }}</span>
-              <van-tag :type="statusTagType[t.status]" plain>{{ statusText[t.status] }}</van-tag>
+              <van-tag :type="statusTagType[t.status]" plain round>{{ statusText[t.status] }}</van-tag>
             </div>
             <div class="task-line">
-              <van-icon name="shop-o" />
+              <div class="task-icon shop"><van-icon name="shop-o" /></div>
               <span class="task-line-text">取：{{ t.merchantName }}</span>
             </div>
             <div class="task-line">
-              <van-icon name="location-o" />
+              <div class="task-icon location"><van-icon name="location-o" /></div>
               <span class="task-line-text">送：{{ t.deliveryAddress }}</span>
             </div>
             <div class="task-card-bottom">
               <span class="task-meta">配送费 ¥{{ money(t.deliveryFee) }}</span>
               <div class="task-btns">
-                <van-button
-                  v-if="t.status === 'delivering'"
-                  type="primary"
-                  size="small"
-                  round
-                  class="task-btn"
-                  @click.stop="finishDeliver(t)"
-                >
-                  确认送达
-                </van-button>
+                <van-button v-if="t.status === 'delivering'" type="primary" size="small" round class="task-btn" @click.stop="finishDeliver(t)">确认送达</van-button>
               </div>
             </div>
           </div>
@@ -273,22 +253,21 @@ onUnmounted(() => {
           >
             <div class="task-card-top">
               <span class="task-merchant">{{ t.merchantName }}</span>
-              <van-tag type="success" plain>已完成</van-tag>
+              <van-tag type="success" plain round>已完成</van-tag>
             </div>
             <div class="task-line">
-              <van-icon name="location-o" />
+              <div class="task-icon location"><van-icon name="location-o" /></div>
               <span class="task-line-text">送：{{ t.deliveryAddress }}</span>
             </div>
             <div class="task-card-bottom">
               <span class="task-meta">配送费 ¥{{ money(t.deliveryFee) }}</span>
-              <span class="task-meta">查看详情 ›</span>
+              <span class="task-meta meta-go">查看详情 ›</span>
             </div>
           </div>
         </div>
       </van-tab>
     </van-tabs>
 
-    <!-- 底部导航 -->
     <van-tabbar route safe-area-inset-bottom>
       <van-tabbar-item replace to="/" icon="orders-o">接单</van-tabbar-item>
       <van-tabbar-item replace to="/profile" icon="user-o">我的</van-tabbar-item>
@@ -303,94 +282,79 @@ onUnmounted(() => {
 }
 
 .wb-header {
-  background: linear-gradient(180deg, #1989fa 0%, #3d9bfa 100%);
-  padding: 20px 16px 22px;
+  background:
+    radial-gradient(120% 80% at 85% 0%, rgba(255, 255, 255, 0.22) 0%, transparent 55%),
+    linear-gradient(160deg, #ff8a3d 0%, #ff6f1c 58%, #f2570a 100%);
+  padding: calc(env(safe-area-inset-top) + 18px) 16px 22px;
   color: #fff;
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
 }
-
 .wb-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-
 .wb-rider {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-
 .wb-avatar {
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.22);
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 700;
 }
-
 .wb-name {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 600;
+  letter-spacing: 0.5px;
 }
-
-.wb-rating {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 3px;
-}
-
-.wb-rating-num {
-  font-size: 11px;
-  opacity: 0.9;
-}
-
 .wb-switch {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.16);
-  border-radius: 999px;
-  padding: 5px 10px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius-pill);
+  padding: 5px 12px;
+  backdrop-filter: blur(4px);
 }
-
 .wb-switch-label {
-  font-size: 12px;
+  font-size: var(--text-sm);
+  font-weight: 500;
 }
 
 .wb-stats {
   margin-top: 18px;
-  background: #fff;
-  border-radius: 12px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
   padding: 14px 0;
   display: flex;
-  color: #323233;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  color: var(--ink-1);
+  box-shadow: var(--shadow-2);
 }
-
 .wb-stat {
   flex: 1;
   text-align: center;
 }
-
 .wb-stat + .wb-stat {
-  border-left: 1px solid #f0f0f0;
+  border-left: 1px solid var(--hairline);
 }
-
 .wb-stat-num {
-  font-size: 19px;
+  font-size: 21px;
+  color: var(--brand-600);
   font-weight: 700;
-  color: #1989fa;
 }
-
 .wb-stat-label {
   margin-top: 3px;
-  font-size: 12px;
-  color: #969799;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
 }
 
 .wb-tabs {
@@ -398,7 +362,7 @@ onUnmounted(() => {
 }
 
 .task-list {
-  padding: 12px 12px 20px;
+  padding: 12px var(--gutter) 20px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -406,45 +370,58 @@ onUnmounted(() => {
 }
 
 .task-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 12px 14px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--dur-fast) var(--ease-spring);
 }
-
+.task-card:active {
+  transform: scale(0.98);
+}
 .task-card-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
 }
-
 .task-merchant {
-  font-size: 15px;
+  font-size: var(--text-xl);
   font-weight: 600;
-  color: #323233;
+  font-family: var(--font-serif);
+  color: var(--ink-1);
 }
-
 .task-fee {
-  font-size: 16px;
-  font-weight: 700;
-  color: #ee0a24;
+  font-size: var(--text-2xl);
 }
-
 .task-line {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
+  gap: 8px;
+  font-size: var(--text-md);
+  color: var(--ink-2);
+  margin-top: 5px;
+}
+.task-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 13px;
-  color: #646566;
-  margin-top: 4px;
+  flex-shrink: 0;
+  margin-top: 1px;
 }
-
-.task-line .van-icon {
-  margin-top: 2px;
-  color: #1989fa;
+.task-icon.shop {
+  background: var(--brand-50);
+  color: var(--brand-600);
 }
-
+.task-icon.location {
+  background: var(--color-indigo-soft);
+  color: var(--color-indigo);
+}
 .task-line-text {
   flex: 1;
   overflow: hidden;
@@ -453,31 +430,31 @@ onUnmounted(() => {
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
 }
-
 .task-card-bottom {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 10px;
+  margin-top: 12px;
   padding-top: 10px;
-  border-top: 1px dashed #ebedf0;
+  border-top: 1px dashed var(--hairline);
 }
-
 .task-meta {
-  font-size: 12px;
-  color: #969799;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
 }
-
+.meta-go {
+  color: var(--brand-600);
+  font-weight: 500;
+}
 .task-btns {
   display: flex;
   gap: 8px;
 }
-
 .task-btn {
   padding: 0 16px;
+  font-weight: 600;
 }
-
 .task-card--done {
-  opacity: 0.85;
+  opacity: 0.88;
 }
 </style>

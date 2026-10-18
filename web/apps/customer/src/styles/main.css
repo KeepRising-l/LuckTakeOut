@@ -1,17 +1,97 @@
-/* 全局基础样式 */
+/* ============================================================
+   LuckTakeOut 顾客端全局样式
+   设计令牌与 Vant 换肤：main.ts 已引入 @takeout/shared/design/vant-theme.css
+   本文件只放全局基础样式与少量全局工具类；页面样式一律走 scoped。
+   ============================================================ */
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+html,
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  background: #f7f8fa;
-  color: #323233;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  /* 桌面端预览时，画布外露出一圈更深的暖米色，衬托移动画布 */
+  background: #efe8db;
+  color: var(--ink-1);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#app {
+  max-width: 750px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--canvas);
+  position: relative;
+  box-shadow: 0 0 40px rgba(122, 66, 18, 0.06);
 }
 
 img {
   display: block;
+}
+
+button {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--brand-100);
+  color: var(--brand-800);
+}
+
+/* ---------- 全局工具类 ---------- */
+.serif {
+  font-family: var(--font-serif);
+}
+
+.tk-price {
+  color: var(--brand-600);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+/* 列表入场：错开渐显（配合页面内 style 绑定 --i 延迟） */
+@keyframes tk-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.tk-rise {
+  animation: tk-rise var(--dur-base) var(--ease-spring) both;
+  animation-delay: calc(var(--i, 0) * 0.05s);
+}
+
+/* 按压反馈统一挂到可点元素 */
+.van-button:active,
+.tk-pressable:active {
+  transform: scale(0.97);
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+
+/* 桌面端预览时隐藏滚动条噪音，保留滚动能力 */
+@media (min-width: 751px) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--hairline-strong);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }

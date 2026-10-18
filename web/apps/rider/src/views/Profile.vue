@@ -23,11 +23,10 @@ async function logout() {
 
 <template>
   <div class="profile-page">
-    <van-nav-bar title="我的" fixed placeholder />
-
     <div class="profile-hero">
       <div class="profile-avatar">{{ (auth.riderInfo?.name || '骑').slice(0, 1) }}</div>
-      <div class="profile-name">{{ auth.riderInfo?.name || '骑手' }}</div>
+      <div class="profile-name serif">{{ auth.riderInfo?.name || '骑手' }}</div>
+      <div class="profile-id" v-if="auth.riderInfo?.phone">{{ auth.riderInfo.phone }}</div>
     </div>
 
     <van-cell-group inset class="profile-cells">
@@ -53,33 +52,45 @@ async function logout() {
 }
 
 .profile-hero {
-  background: linear-gradient(180deg, #1989fa 0%, #3d9bfa 100%);
-  padding: 28px 0 34px;
+  background:
+    radial-gradient(120% 80% at 85% 0%, rgba(255, 255, 255, 0.22) 0%, transparent 55%),
+    linear-gradient(160deg, #ff8a3d 0%, #ff6f1c 58%, #f2570a 100%);
+  padding: 32px 0 38px;
   text-align: center;
   color: #fff;
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
 }
 
 .profile-avatar {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 10px;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 12px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.22);
+  border: 2px solid rgba(255, 255, 255, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  font-weight: 600;
+  font-size: 32px;
+  font-weight: 700;
 }
 
 .profile-name {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.profile-id {
+  margin-top: 6px;
+  font-size: var(--text-md);
+  opacity: 0.88;
+  font-variant-numeric: tabular-nums;
 }
 
 .profile-cells {
-  margin-top: 12px;
-  border-radius: 12px;
+  margin-top: 14px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 

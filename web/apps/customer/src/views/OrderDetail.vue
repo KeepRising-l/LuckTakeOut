@@ -82,7 +82,7 @@ onMounted(load)
           <div class="status-big cancel"><van-icon name="close" /> 已取消</div>
         </template>
         <template v-else>
-          <van-steps :active="stepIndex" active-color="#ff6d1f" inactive-color="#c8c9cc">
+          <van-steps :active="stepIndex" active-color="var(--brand-500)" inactive-color="var(--hairline-strong)">
             <van-step>提交订单</van-step>
             <van-step>支付完成</van-step>
             <van-step>商家接单</van-step>
@@ -90,12 +90,14 @@ onMounted(load)
             <van-step>已完成</van-step>
           </van-steps>
         </template>
-        <div class="status-text">当前状态：{{ ORDER_STATUS[order.status] || order.status }} · {{ datetime(order.createTime) }}</div>
+        <div class="status-text">{{ ORDER_STATUS[order.status] || order.status }} · {{ datetime(order.createTime) }}</div>
       </div>
 
       <!-- 地址 -->
       <div class="addr-panel" v-if="order.address">
-        <van-icon name="location-o" />
+        <div class="addr-icon">
+          <van-icon name="location-o" />
+        </div>
         <span>{{ order.address }}</span>
       </div>
 
@@ -104,12 +106,12 @@ onMounted(load)
         <div class="g-merchant"><van-icon name="shop-o" /> {{ order.merchantName }}</div>
         <div v-for="i in order.items" :key="i.productId" class="g-item">
           <div class="g-name">{{ i.productName }}</div>
-          <div class="g-right">x{{ i.quantity }} <span class="g-price">¥{{ money(i.amount) }}</span></div>
+          <div class="g-right">x{{ i.quantity }} <span class="g-price tk-price">¥{{ money(i.amount) }}</span></div>
         </div>
         <div class="fee-row"><span>商品金额</span><span>¥{{ money(order.productAmount) }}</span></div>
         <div class="fee-row"><span>配送费</span><span>¥{{ money(order.deliveryFee) }}</span></div>
         <div class="fee-row" v-if="order.discountAmount"><span>优惠</span><span>-¥{{ money(order.discountAmount) }}</span></div>
-        <div class="fee-row total"><span>实付</span><span class="t-price">¥{{ money(order.actualAmount) }}</span></div>
+        <div class="fee-row total"><span>实付</span><span class="t-price tk-price">¥{{ money(order.actualAmount) }}</span></div>
       </div>
 
       <!-- 信息 -->
@@ -122,7 +124,7 @@ onMounted(load)
       <!-- 操作 -->
       <div class="action-bar">
         <van-button v-if="order.status === 10" plain round type="danger" @click="cancel">取消订单</van-button>
-        <van-button v-if="order.status === 10" round type="danger" @click="pay">去支付</van-button>
+        <van-button v-if="order.status === 10" round type="primary" @click="pay">去支付</van-button>
         <van-button v-if="order.status === 50" round type="primary" @click="showReview = true">评价订单</van-button>
       </div>
     </template>
@@ -130,8 +132,9 @@ onMounted(load)
 
     <van-popup v-model:show="showReview" position="bottom" round>
       <div class="review-panel">
-        <div class="rv-title">评价订单</div>
-        <van-rate v-model="rating" color="#ff6d1f" size="28" />
+        <div class="rv-title serif">评价订单</div>
+        <div class="rv-rate-label">{{ rating }}.0 分</div>
+        <van-rate v-model="rating" size="28" />
         <van-field
           v-model="content"
           type="textarea"
@@ -151,108 +154,144 @@ onMounted(load)
 .od-page {
   min-height: 100vh;
   padding-bottom: 24px;
+  background: var(--canvas);
 }
 .status-panel {
-  background: #fff;
-  margin: 12px;
-  border-radius: 10px;
-  padding: 20px 8px 12px;
+  background: var(--surface);
+  margin: 12px var(--gutter);
+  border-radius: var(--radius-lg);
+  padding: 20px 12px 14px;
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-1);
 }
 .status-big {
   text-align: center;
-  font-size: 20px;
+  font-size: var(--text-3xl);
   font-weight: 600;
-  color: #969799;
+  color: var(--ink-3);
   padding: 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 .status-text {
   text-align: center;
-  font-size: 12px;
-  color: #969799;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
   margin-top: 10px;
 }
 .addr-panel {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: #fff;
-  margin: 0 12px 12px;
-  border-radius: 10px;
-  padding: 14px 12px;
-  font-size: 14px;
+  gap: 10px;
+  background: var(--surface);
+  margin: 0 var(--gutter) 12px;
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+  border: 1px solid var(--hairline);
+  font-size: var(--text-lg);
 }
-.addr-panel .van-icon {
-  color: #ff6d1f;
-  font-size: 18px;
+.addr-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-indigo-soft);
+  color: var(--color-indigo);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
 }
 .goods-panel,
 .info-panel {
-  background: #fff;
-  margin: 0 12px 12px;
-  border-radius: 10px;
-  padding: 12px;
+  background: var(--surface);
+  margin: 0 var(--gutter) 12px;
+  border-radius: var(--radius-lg);
+  padding: 4px 14px 14px;
+  border: 1px solid var(--hairline);
+}
+.info-panel {
+  padding: 0;
+  overflow: hidden;
 }
 .g-merchant {
-  font-size: 15px;
+  font-size: var(--text-xl);
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding-bottom: 8px;
+  gap: 6px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.g-merchant .van-icon {
+  color: var(--brand-500);
 }
 .g-item {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
-  padding: 6px 0;
+  font-size: var(--text-lg);
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--hairline);
 }
 .g-right {
-  color: #969799;
+  color: var(--ink-2);
+  font-size: var(--text-md);
 }
 .g-price {
-  color: #323233;
+  color: var(--ink-1);
   margin-left: 8px;
-  font-weight: 600;
+  font-size: var(--text-lg);
 }
 .fee-row {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
-  color: #646566;
-  padding-top: 8px;
+  font-size: var(--text-md);
+  color: var(--ink-2);
+  padding-top: 9px;
 }
 .fee-row.total {
-  border-top: 1px solid #f2f3f5;
+  border-top: 1px solid var(--hairline);
   margin-top: 8px;
-  padding-top: 10px;
+  padding-top: 11px;
   font-weight: 600;
-  color: #323233;
+  color: var(--ink-1);
+  font-size: var(--text-lg);
 }
 .t-price {
-  color: #ff6d1f;
-  font-size: 17px;
+  font-size: var(--text-2xl);
 }
 .action-bar {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  padding: 0 12px;
+  padding: 0 var(--gutter);
 }
 .action-bar .van-button {
   padding: 0 24px;
+  font-weight: 500;
 }
 .review-panel {
-  padding: 20px 16px 28px;
+  padding: 22px 16px calc(28px + env(safe-area-inset-bottom));
   text-align: center;
 }
 .rv-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 14px;
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+}
+.rv-rate-label {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--brand-600);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 8px;
 }
 .rv-field {
-  margin: 14px 0;
-  background: #f7f8fa;
-  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
 }
 </style>

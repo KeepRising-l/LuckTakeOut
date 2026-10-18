@@ -32,16 +32,18 @@ onMounted(() => {
 
 <template>
   <div class="profile-page">
-    <van-nav-bar title="我的" :border="false" />
     <div class="user-card">
-      <van-image round width="60" height="60" :src="auth.user?.avatar">
-        <template #loading><van-icon name="user-o" /></template>
-        <template #error><van-icon name="user-o" /></template>
-      </van-image>
+      <div class="u-avatar">
+        <van-image round width="60" height="60" :src="auth.user?.avatar">
+          <template #loading><van-icon name="user-o" /></template>
+          <template #error><van-icon name="user-o" /></template>
+        </van-image>
+      </div>
       <div class="u-info">
-        <div class="u-name">{{ auth.user?.nickname || '未登录' }}</div>
+        <div class="u-name serif">{{ auth.user?.nickname || '未登录' }}</div>
         <div class="u-phone">{{ auth.user?.phone || '' }}</div>
       </div>
+      <div class="u-badge">干饭人</div>
     </div>
 
     <van-cell-group inset class="cell-group">
@@ -59,35 +61,65 @@ onMounted(() => {
 <style scoped>
 .profile-page {
   min-height: 100vh;
-  padding-bottom: 70px;
+  padding: 12px 0 76px;
 }
+
+/* ---------- 用户卡 ---------- */
 .user-card {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: linear-gradient(135deg, #ff6d1f, #ff8a45);
-  margin: 0 12px;
-  border-radius: 12px;
-  padding: 22px 16px;
+  background:
+    radial-gradient(90% 130% at 90% 10%, rgba(255, 255, 255, 0.26) 0%, transparent 55%),
+    linear-gradient(140deg, #ff8a3d 0%, #ff6f1c 60%, #f2570a 100%);
+  margin: 0 var(--gutter);
+  border-radius: var(--radius-xl);
+  padding: 22px 18px;
   color: #fff;
+  box-shadow: var(--shadow-brand);
 }
-.user-card .van-icon {
+.u-avatar :deep(.van-image__img) {
+  border: 2px solid rgba(255, 255, 255, 0.8);
+}
+.u-avatar .van-icon {
   font-size: 34px;
-  color: #fff;
+  color: rgba(255, 255, 255, 0.9);
+}
+.u-info {
+  flex: 1;
+  min-width: 0;
 }
 .u-name {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 .u-phone {
-  font-size: 13px;
-  opacity: 0.9;
-  margin-top: 4px;
+  font-size: var(--text-md);
+  opacity: 0.88;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
 }
+.u-badge {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  letter-spacing: 1px;
+}
+
+/* ---------- 功能列表 ---------- */
 .cell-group {
   margin-top: 12px;
 }
-.cell-group .van-cell {
+.cell-group :deep(.van-cell) {
   padding: 15px 16px;
+}
+.cell-group :deep(.van-cell__left-icon) {
+  color: var(--brand-500);
+  font-size: 19px;
+  margin-right: 8px;
 }
 </style>

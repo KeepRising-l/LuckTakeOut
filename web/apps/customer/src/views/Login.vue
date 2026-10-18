@@ -54,11 +54,9 @@ async function doLogin() {
 <template>
   <div class="login-page">
     <div class="login-hero">
-      <div class="login-logo">
-        <van-icon name="shop-o" />
-      </div>
-      <h1>欢迎来到外卖点餐</h1>
-      <p>登录后开始点餐吧</p>
+      <div class="login-logo serif">拾</div>
+      <h1 class="serif">拾味外卖</h1>
+      <p>好好吃饭，是一件正经事</p>
     </div>
     <div class="login-form">
       <van-field id="phone" v-model="phone" type="tel" maxlength="11" placeholder="请输入手机号" clearable>
@@ -90,55 +88,63 @@ async function doLogin() {
 <style scoped>
 .login-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #ff6d1f 0%, #ff8f3f 30%, #f7f8fa 70%);
+  background:
+    radial-gradient(100% 60% at 50% 0%, rgba(255, 255, 255, 0.28) 0%, transparent 60%),
+    linear-gradient(165deg, #ff8a3d 0%, #ff6f1c 46%, var(--canvas) 46.2%, var(--canvas) 100%);
   padding: 0 28px;
 }
 .login-hero {
-  padding: 80px 0 48px;
+  padding: calc(env(safe-area-inset-top) + 64px) 0 40px;
   color: #fff;
   text-align: center;
 }
 .login-logo {
-  width: 72px;
-  height: 72px;
+  width: 76px;
+  height: 76px;
   margin: 0 auto 16px;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.22);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
-}
-.login-logo .van-icon {
-  font-size: 40px;
-  color: #fff;
+  font-size: 38px;
+  font-weight: 700;
+  box-shadow: var(--shadow-3);
 }
 .login-hero h1 {
-  font-size: 24px;
-  font-weight: 600;
+  font-size: var(--text-4xl);
+  font-weight: 700;
+  letter-spacing: 3px;
 }
 .login-hero p {
-  margin-top: 8px;
-  font-size: 14px;
-  opacity: 0.9;
+  margin-top: 10px;
+  font-size: var(--text-md);
+  opacity: 0.92;
+  letter-spacing: 1px;
 }
 .login-form {
-  background: #fff;
-  border-radius: 16px;
-  padding: 20px 4px 28px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  padding: 12px 4px 28px;
+  box-shadow: var(--shadow-2);
+  border: 1px solid var(--hairline);
 }
-.login-form .van-field {
-  height: 56px;
+.login-form :deep(.van-field) {
+  height: 58px;
   align-items: center;
 }
 .login-btn {
-  margin: 24px 16px 0;
+  margin: 20px 16px 0;
   width: calc(100% - 32px);
+  font-weight: 600;
+  letter-spacing: 2px;
 }
 .login-tip {
-  margin-top: 14px;
+  margin-top: 16px;
   text-align: center;
-  font-size: 12px;
-  color: #969799;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
 }
 </style>

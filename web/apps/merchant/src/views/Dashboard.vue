@@ -26,10 +26,14 @@ const topRef = ref<HTMLElement>()
 const pieRef = ref<HTMLElement>()
 const charts: echarts.ECharts[] = []
 
-const PRIMARY = '#ff6d1f'
+const PRIMARY = '#ff6f1c'
 const PIE_COLORS: Record<number, string> = {
-  10: '#ffd591', 20: '#ff9258', 30: '#ff6d1f',
-  40: '#5470c6', 50: '#67c23a', 60: '#c0c4cc',
+  10: '#ff8a3d', // 待支付
+  20: '#3fa36a', // 已支付
+  30: '#e8a213', // 待接单
+  40: '#3a7ca5', // 配送中
+  50: '#2f7d51', // 已完成
+  60: '#c4b5a3', // 已取消
 }
 
 function makeChart(el: HTMLElement | undefined, option: echarts.EChartsOption) {
@@ -54,7 +58,7 @@ async function load() {
     yAxis: { type: 'value' },
     series: [{
       name: '营业额', type: 'line', smooth: true, data: trend.map((t) => t.revenue),
-      itemStyle: { color: PRIMARY }, areaStyle: { color: 'rgba(255,109,31,0.12)' },
+      itemStyle: { color: PRIMARY }, areaStyle: { color: 'rgba(255,111,28,0.12)' },
     }],
   })
 
@@ -186,7 +190,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .stat-card :deep(.el-card__body) { padding: 18px 20px; }
-.stat-label { font-size: 13px; color: #909399; }
-.stat-value { font-size: 26px; font-weight: 700; margin-top: 8px; color: #303133; }
+.stat-label { font-size: 13px; color: var(--ink-2); }
+.stat-value { font-size: 26px; font-weight: 700; margin-top: 8px; color: var(--ink-1); font-variant-numeric: tabular-nums; }
 .chart-row { margin-top: 16px; }
 </style>
