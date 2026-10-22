@@ -20,7 +20,8 @@ from payment.models import PaymentRecord
 from user.models import UserInfo
 
 from .agent import run_agent
-from .models import ChatSession, OrderDraft
+from .models import ChatSession, OrderDraft, OrderDraftItem
+from .recommend import build_profile, build_reorder, recommend_dishes
 
 
 def _current_customer(request):
@@ -155,3 +156,54 @@ def draft_confirm(request, pk):
         d.save()
 
     return ok({'orderId': order.id, 'orderNo': order.order_no, 'actualAmount': float(pay_amount)})
+
+
+@require_http_methods(['GET'])
+@api_login_required
+def recommend(request):
+    """首页「猜你想吃」：口味画像 + 推荐菜品（无历史时返回冷启动结果）。"""
+    customer = _current_customer(request)
+    if customer is None:
+        return fail('用户不存在', status=401)
+    return ok({
+        'profile': build_profile(customer),
+        'dishes': recommend_dishes(customer),
+    })
+
+
+@require_http_methods(['POST'])
+@api_login_required
+def reorder(request):
+    """一键复购：用最近一笔有效订单重建草稿（自动跳过下架/库存不足的菜）。"""
+    customer = _current_customer(request)
+    if customer is None:
+        return fail('用户不存在', status=401)
+
+    order, items, missing = build_reorder(customer)
+    if order is None:
+        return fail('还没有可复购的历史订单，先下一单试试')
+    if not items:
+        return fail('上次点的菜都不在售了，换个口味吧')
+
+    address = customer.addresses.order_by('-is_default', '-id').first()
+    total = sum((p.price * qty for p, qty in items), Decimal('0'))
+
+    with transaction.atomic():
+        draft = OrderDraft.objects.create(
+            session=None, customer=customer, merchant=order.merchant,
+            address=address, total_amount=total, status=OrderDraft.STATUS_PENDING,
+        )
+        for p, qty in items:
+            OrderDraftItem.objects.create(
+                draft=draft, product=p, quantity=qty, price_snapshot=p.price,
+            )
+
+    return ok({
+        'draftId': draft.id,
+        'merchantName': order.merchant.name,
+        'sourceOrderNo': order.order_no,
+        'total': float(total),
+        'address': address.detail if address else '',
+        'items': [{'name': p.name, 'quantity': q, 'price': float(p.price)} for p, q in items],
+        'skipped': missing,
+    }, info='已按上次订单生成草稿')

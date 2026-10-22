@@ -169,6 +169,25 @@ export const orderApi = {
     http.post(`/orders/${id}/review`, data),
 }
 
+export interface TasteProfile {
+  orderCount: number
+  avgAmount: number
+  totalSpend: number
+  favoriteSlot: string
+  topMerchants: { merchantId: number; name: string; orders: number }[]
+  topDishes: { productId: number; name: string; merchantName: string; times: number }[]
+}
+
+export interface RecommendedDish {
+  productId: number
+  name: string
+  image: string
+  price: number
+  merchantId: number
+  merchantName: string
+  reason: string
+}
+
 export const aiApi = {
   createSession: () => http.post<never, AiSession>('/ai/session', {}, AI_TIMEOUT),
   chat: (sessionId: string, message: string) =>
@@ -179,6 +198,19 @@ export const aiApi = {
       {},
       AI_TIMEOUT,
     ),
+  /** 首页「猜你想吃」：口味画像 + 推荐菜品 */
+  recommend: () => http.get<never, { profile: TasteProfile; dishes: RecommendedDish[] }>('/ai/recommend'),
+  /** 一键复购：按最近订单生成待确认草稿 */
+  reorder: () =>
+    http.post<never, {
+      draftId: number
+      merchantName: string
+      sourceOrderNo: string
+      total: number
+      address: string
+      items: { name: string; quantity: number; price: number }[]
+      skipped: string[]
+    }>('/ai/reorder', {}, AI_TIMEOUT),
 }
 
 /** 状态文案：与三端共用的取值口径一致 */

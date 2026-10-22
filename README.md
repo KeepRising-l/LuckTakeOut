@@ -73,6 +73,20 @@ cd takeout
 ## 演示链路
 顾客点菜下单 → 模拟支付 → 商户接单 → 骑手抢单配送 → 顾客评价 →（AI 客服对话式下单）
 
+## AI 个性化点餐
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 对话下单 | 顾客端「AI」页 | 多轮对话 + 工具调用，生成待确认草稿再转正式订单 |
+| 历史推荐 | 首页「猜你想吃」 | 按历史订单画像推荐，每条带理由（「你点过 4 次」「来自你常点的店」） |
+| 一键复购 | 首页「再点一单」 | 用最近订单重建草稿，自动跳过下架/缺货菜品 |
+| 确认即支付 | AI 草稿卡片 | 确认后直接完成支付并跳订单详情，不经过购物车与结算页 |
+| 断网兜底 | 自动 | LLM 密钥失效/断网时降级为内置规则 Mock，推荐与下单链路仍可演示 |
+
+接口：`GET /api/v1/ai/recommend`（画像 + 推荐）、`POST /api/v1/ai/reorder`（复购草稿）；
+工具：`get_my_history`、`recommend_dishes`（另有 search_merchant / search_menu / validate_draft /
+create_draft / get_order_status / urge_order / submit_review）。
+
 ## 文档导航
 
 | 文档 | 位置 |

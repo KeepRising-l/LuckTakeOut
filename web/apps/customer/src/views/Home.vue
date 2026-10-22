@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { showConfirmDialog, showSuccessToast, showToast } from 'vant'
 import TabBar from '@/components/TabBar.vue'
 import FoodIcon from '@/components/FoodIcon.vue'
-import { merchantApi, pickImage } from '@/api'
+import { aiApi, merchantApi, money, orderApi, pickImage } from '@/api'
+import type { RecommendedDish, TasteProfile } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -12,6 +14,10 @@ const auth = useAuthStore()
 const keyword = ref('')
 const loading = ref(false)
 const merchants = ref<Awaited<ReturnType<typeof merchantApi.nearby>>>([])
+
+/** 猜你想吃：口味画像 + 推荐菜品（无历史时后端返回冷启动结果） */
+const taste = ref<{ profile: TasteProfile; dishes: RecommendedDish[] } | null>(null)
+const reordering = ref(false)
 
 /** 分类入口：餐饮语义线性图标（FoodIcon）+ 暖色圆底 tint */
 const cats = [
@@ -40,9 +46,46 @@ function onSearch() {
   router.push({ path: '/search', query: keyword.value ? { keyword: keyword.value } : {} })
 }
 
+async function loadTaste() {
+  try {
+    taste.value = await aiApi.recommend()
+  } catch {
+    taste.value = null
+  }
+}
+
+/** 再点一单：按最近订单生成草稿 → 确认 → 直接支付，不经过购物车与结算页 */
+async function onReorder() {
+  if (reordering.value) return
+  reordering.value = true
+  try {
+    const d = await aiApi.reorder()
+    const summary = d.items.map((i) => `${i.name} ×${i.quantity}`).join('、')
+    const confirmed = await showConfirmDialog({
+      title: '再点一单',
+      message: `${d.merchantName}：${summary}，合计 ¥${money(d.total)}`,
+      confirmButtonText: '确认并支付',
+      cancelButtonText: '再看看',
+    }).then(() => true).catch(() => false)
+    if (!confirmed) return
+
+    const r = await aiApi.confirmDraft(d.draftId)
+    await orderApi.pay(r.orderId)
+    showSuccessToast('支付成功')
+    router.push(`/orders/${r.orderId}`)
+  } catch (e) {
+    showToast((e as Error).message)
+  } finally {
+    reordering.value = false
+  }
+}
+
 onMounted(() => {
   if (!auth.isLogin) router.replace('/login')
-  else load()
+  else {
+    load()
+    loadTaste()
+  }
 })
 </script>
 
@@ -71,6 +114,45 @@ onMounted(() => {
         <span>{{ c.name }}</span>
       </div>
     </div>
+
+    <section v-if="taste && taste.dishes.length" class="rec-block tk-rise">
+      <div class="rec-head">
+        <div class="rec-head-text">
+          <span class="rec-title">猜你想吃</span>
+          <span v-if="taste.profile.orderCount" class="rec-sub">
+            常点「{{ taste.profile.topMerchants[0]?.name }}」· 客单价 ¥{{ money(taste.profile.avgAmount) }}
+          </span>
+          <span v-else class="rec-sub">还没有历史订单，先看看人气菜</span>
+        </div>
+        <van-button
+          v-if="taste.profile.orderCount"
+          class="rec-reorder"
+          size="small"
+          round
+          plain
+          type="primary"
+          :loading="reordering"
+          @click="onReorder"
+        >
+          再点一单
+        </van-button>
+      </div>
+      <div class="rec-scroll">
+        <div
+          v-for="d in taste.dishes"
+          :key="d.productId"
+          class="rec-card"
+          @click="router.push(`/shop/${d.merchantId}`)"
+        >
+          <van-image class="rec-img" radius="10" fit="cover" :src="d.image">
+            <template #loading><van-icon name="photo-o" /></template>
+          </van-image>
+          <div class="rec-name">{{ d.name }}</div>
+          <div class="rec-price">¥{{ money(d.price) }}</div>
+          <div class="rec-reason">{{ d.reason }}</div>
+        </div>
+      </div>
+    </section>
 
     <div class="section-head">
       <span class="section-title">附近商家</span>
@@ -298,5 +380,83 @@ onMounted(() => {
   background: var(--brand-50);
   border-radius: var(--radius-sm);
   padding: 2px 7px;
+}
+
+/* ---------- 猜你想吃 ---------- */
+.rec-block {
+  margin: 18px var(--gutter) 0;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  padding: 14px 14px 12px;
+  box-shadow: var(--shadow-1);
+}
+.rec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.rec-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rec-title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  font-family: var(--font-serif);
+  color: var(--ink-1);
+}
+.rec-sub {
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rec-reorder {
+  flex-shrink: 0;
+}
+.rec-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+.rec-scroll::-webkit-scrollbar { display: none; }
+.rec-card {
+  flex: 0 0 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.rec-img {
+  width: 96px;
+  height: 72px;
+  background: var(--surface-2);
+}
+.rec-name {
+  font-size: var(--text-sm);
+  color: var(--ink-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rec-price {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--brand-600);
+  font-variant-numeric: tabular-nums;
+}
+.rec-reason {
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

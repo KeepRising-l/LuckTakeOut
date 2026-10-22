@@ -110,6 +110,8 @@ api_patterns = [
     # AI 点餐助手（顾客端功能）
     path('ai/session', ai_api.create_session),
     path('ai/chat', ai_api.chat),
+    path('ai/recommend', ai_api.recommend),
+    path('ai/reorder', ai_api.reorder),
     path('ai/drafts/<int:pk>', ai_api.draft_detail),
     path('ai/drafts/<int:pk>/confirm', ai_api.draft_confirm),
 ]

@@ -41,9 +41,15 @@ def chat_completion(messages, tools=None):
     try:
         with urllib.request.urlopen(req, timeout=60) as resp:
             data = json.loads(resp.read().decode('utf-8'))
-    except urllib.error.HTTPError as e:
-        detail = e.read().decode('utf-8', 'ignore')
-        raise RuntimeError(f'LLM 调用失败: HTTP {e.code} {detail}')
+    except Exception as e:  # noqa: BLE001
+        # 欠费/断网/限流/密钥失效时降级到内置规则 Mock，保证演示与联调不中断
+        import logging
+
+        detail = ''
+        if isinstance(e, urllib.error.HTTPError):
+            detail = e.read().decode('utf-8', 'ignore')[:200]
+        logging.getLogger(__name__).warning('LLM 调用失败，降级到内置 Mock：%s %s', e, detail)
+        return _mock_completion(messages)
     return data['choices'][0]['message']
 
 
@@ -109,6 +115,47 @@ def _mock_completion(messages):
     res = _tool_results(messages)
     called = set(res.keys())
 
+    # --- 推荐（先看历史，再给推荐）---
+    if any(k in last_user for k in ('推荐', '吃什么', '吃点啥', '随便来', '猜我')):
+        if 'get_my_history' not in called:
+            return _tc('get_my_history', {})
+        if 'recommend_dishes' not in called:
+            return _tc('recommend_dishes', {'limit': 4})
+        dishes = (res.get('recommend_dishes') or {}).get('list') or []
+        if not dishes:
+            return _text('还没有足够的历史记录，先看看首页热销吧。')
+        lines = [
+            f"· {d['name']}（¥{d['price']}，{d['merchantName']}）—— {d['reason']}"
+            for d in dishes[:4]
+        ]
+        return _text('根据你以前的订单，推荐这几样：\n' + '\n'.join(lines) + '\n要直接下单吗？')
+
+    # --- 复购（老样子 / 再来一单）---
+    if any(k in last_user for k in ('老样子', '再来一单', '和上次一样', '复购')):
+        if 'get_my_history' not in called:
+            return _tc('get_my_history', {})
+        tops = (res.get('get_my_history') or {}).get('topDishes') or []
+        if not tops:
+            return _text('还没有历史订单，先下一单试试吧。')
+        top = tops[0]
+        if 'validate_draft' not in called:
+            return _tc('validate_draft', {
+                'merchant_id': top['merchantId'],
+                'items': [{'product_id': top['productId'], 'quantity': 1}],
+            })
+        if 'create_draft' not in called:
+            v = res.get('validate_draft') or {}
+            return _tc('create_draft', {
+                'merchant_id': top['merchantId'],
+                'items': [{'product_id': i['product_id'], 'quantity': i['quantity']}
+                          for i in (v.get('items') or [])],
+            })
+        draft = res.get('create_draft') or {}
+        return _text(
+            f"已按你常点的「{top['name']}」生成待确认草稿"
+            f"（合计 ¥{draft.get('total', 0)}），确认后即可下单。"
+        )
+
     # --- 催单 ---
     if any(k in last_user for k in ('催', '怎么还没', '多久到')):
         if 'get_order_status' not in called:
@@ -162,7 +209,8 @@ def _mock_completion(messages):
 
 
 def _guess_keyword(text):
-    for kw in ('川香', '快乐奶茶', '奶茶', '川菜', '快餐', '小馆'):
+    for kw in ('川香', '快乐奶茶', '奶茶', '川菜', '咖啡', '面', '寿司', '快餐',
+               '小馆', '湘菜', '汉堡', '炸鸡'):
         if kw in text:
             return kw
     return ''

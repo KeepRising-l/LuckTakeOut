@@ -5,16 +5,21 @@
 """
 
 import json
+import uuid
+from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.test import TestCase
 
 from common.auth import make_token
 from merchant.models import MerchantInfo
+from order.models import OrderInfo, OrderItem
 from platform_ops.models import OperationLog
+from product.models import ProductInfo
 from user.models import UserInfo
 
 from .models import ChatSession, OrderDraft
+from .recommend import build_profile, build_reorder, recommend_dishes
 from .tools import execute_tool
 
 
@@ -126,3 +131,105 @@ class AiAuditTest(TestCase):
         self.assertEqual(log.actor_id, self.customer.id)
         self.assertEqual(log.actor_role, 'ai')
         self.assertEqual(log.action, 'search_merchant')
+
+
+class RecommendTest(TestCase):
+    """历史推荐与一键复购：画像口径、推荐理由、下架/缺货过滤。"""
+
+    def setUp(self):
+        self.auth_user, self.customer = make_customer('ai_rec1', '常客', '13800000011')
+        self.merchant = make_merchant('ai_shop1', '测试川菜馆')
+        self.p_hot = ProductInfo.objects.create(
+            merchant=self.merchant, name='招牌套餐', price=Decimal('30.00'), stock=10, status=10,
+        )
+        self.p_side = ProductInfo.objects.create(
+            merchant=self.merchant, name='配菜', price=Decimal('10.00'), stock=10, status=10,
+        )
+        self.p_off = ProductInfo.objects.create(
+            merchant=self.merchant, name='已下架菜', price=Decimal('20.00'), stock=10, status=20,
+        )
+        self._make_order([(self.p_hot, 1), (self.p_side, 2)])
+        self._make_order([(self.p_hot, 1)])
+
+    def _make_order(self, pairs, status=OrderInfo.STATUS_FINISHED):
+        total = sum((p.price * q for p, q in pairs), Decimal('0'))
+        order = OrderInfo.objects.create(
+            order_no=uuid.uuid4().hex[:20], user=self.customer, merchant=self.merchant,
+            address_snapshot='测试地址', total_amount=total, delivery_fee=Decimal('2.00'),
+            pay_amount=total + Decimal('2.00'), status=status,
+        )
+        for p, q in pairs:
+            OrderItem.objects.create(
+                order=order, product=p, product_name=p.name,
+                price=p.price, quantity=q, amount=p.price * q,
+            )
+        return order
+
+    def test_profile_counts_orders_not_items(self):
+        """商户维度按订单数统计：两笔订单即使含 3 条明细也只算 2 单。"""
+        profile = build_profile(self.customer)
+        self.assertEqual(profile['orderCount'], 2)
+        self.assertEqual(profile['topMerchants'][0]['orders'], 2)
+        # 招牌套餐出现在两笔订单中
+        self.assertEqual(profile['topDishes'][0]['name'], '招牌套餐')
+        self.assertEqual(profile['topDishes'][0]['times'], 2)
+
+    def test_recommend_prefers_history_and_explains(self):
+        dishes = recommend_dishes(self.customer, limit=6)
+        self.assertTrue(dishes)
+        self.assertEqual(dishes[0]['name'], '招牌套餐')
+        self.assertIn('你点过', dishes[0]['reason'])
+
+    def test_recommend_excludes_offline(self):
+        names = [d['name'] for d in recommend_dishes(self.customer, limit=10)]
+        self.assertNotIn('已下架菜', names)
+
+    def test_recommend_cold_start(self):
+        """无历史顾客也能拿到推荐（走全站热销兜底）。"""
+        _, stranger = make_customer('ai_new1', '新客', '13800000012')
+        dishes = recommend_dishes(stranger, limit=3)
+        self.assertTrue(dishes)
+        self.assertTrue(all(d['reason'] for d in dishes))
+
+    def test_reorder_skips_offline(self):
+        """最近订单含下架菜时，复购草稿应跳过并记录 skipped。"""
+        self._make_order([(self.p_hot, 1), (self.p_off, 1)])
+        order, items, missing = build_reorder(self.customer)
+        self.assertIsNotNone(order)
+        self.assertEqual([p.name for p, _ in items], ['招牌套餐'])
+        self.assertTrue(any('已下架菜' in m for m in missing))
+
+    def test_reorder_skips_out_of_stock(self):
+        self.p_hot.stock = 0
+        self.p_hot.save()
+        _, items, missing = build_reorder(self.customer)
+        self.assertNotIn('招牌套餐', [p.name for p, _ in items])
+        self.assertTrue(any('库存不足' in m for m in missing))
+
+    def test_reorder_without_history(self):
+        _, stranger = make_customer('ai_new2', '新客二', '13800000013')
+        order, items, missing = build_reorder(stranger)
+        self.assertIsNone(order)
+        self.assertEqual(items, [])
+
+    def test_recommend_endpoint_scope(self):
+        """推荐接口返回的是当前登录顾客的画像。"""
+        self.client.defaults['HTTP_AUTHORIZATION'] = f'Bearer {make_token(self.auth_user)}'
+        res = self.client.get('/api/v1/ai/recommend')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()['data']
+        self.assertEqual(data['profile']['orderCount'], 2)
+        self.assertTrue(data['dishes'])
+
+    def test_reorder_endpoint_creates_draft(self):
+        """复购取最近一笔订单：最近一单只有 1 个菜，草稿也应为 1 条明细。"""
+        self.client.defaults['HTTP_AUTHORIZATION'] = f'Bearer {make_token(self.auth_user)}'
+        res = self.client.post('/api/v1/ai/reorder', data='{}', content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+        payload = res.json()['data']
+        self.assertTrue(payload['draftId'])
+        draft = OrderDraft.objects.get(id=payload['draftId'])
+        self.assertEqual(draft.customer, self.customer)
+        self.assertEqual(draft.merchant, self.merchant)
+        self.assertEqual(draft.items.count(), 1)
+        self.assertEqual(draft.items.first().product.name, '招牌套餐')

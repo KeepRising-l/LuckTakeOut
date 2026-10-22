@@ -2,7 +2,7 @@
 import { nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
-import { aiApi, money } from '@/api'
+import { aiApi, money, orderApi } from '@/api'
 import type { AiDraft, AiSession } from '@/api'
 
 const router = useRouter()
@@ -58,11 +58,22 @@ async function confirmDraft(msg: Msg) {
   try {
     const r = await aiApi.confirmDraft(msg.draft.draftId)
     msg.confirmed = true
-    messages.value.push({
-      role: 'ai',
-      text: `下单成功！订单号 ${r.orderNo}，实付 ¥${money(r.actualAmount)}，可到「订单」中查看并支付。`,
-    })
-    scrollBottom()
+    // 确认即支付：不跳购物车/结算页，直接完成支付并进入订单详情
+    try {
+      await orderApi.pay(r.orderId)
+      messages.value.push({
+        role: 'ai',
+        text: `已下单并支付成功！订单号 ${r.orderNo}，实付 ¥${money(r.actualAmount)}。正在为你跳转订单详情…`,
+      })
+      scrollBottom()
+      setTimeout(() => router.push(`/orders/${r.orderId}`), 1200)
+    } catch (payErr) {
+      messages.value.push({
+        role: 'ai',
+        text: `订单已创建（${r.orderNo}，¥${money(r.actualAmount)}），但支付未完成：${(payErr as Error).message}。可到「订单」中继续支付。`,
+      })
+      scrollBottom()
+    }
   } catch (e) {
     showToast((e as Error).message)
   }
@@ -178,6 +189,7 @@ onMounted(async () => {
   font-size: var(--text-lg);
   line-height: 1.55;
   word-break: break-all;
+  white-space: pre-wrap;
   box-shadow: var(--shadow-1);
 }
 .msg-row.user .bubble {

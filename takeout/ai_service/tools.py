@@ -16,6 +16,7 @@ from product.models import ProductInfo
 from review.models import Review
 
 from .models import OrderDraft, OrderDraftItem
+from .recommend import build_profile, recommend_dishes
 
 ORDER_STATUS_TEXT = {
     10: '待支付', 20: '已支付', 30: '待接单', 40: '配送中',
@@ -74,6 +75,11 @@ TOOL_SCHEMAS = [
         'rating': {'type': 'integer'},
         'content': {'type': 'string'},
     }, ['order_id', 'rating']),
+    _fn('get_my_history', '查看当前顾客的历史点餐偏好（常点商户、常点菜品、客单价、常点时段）',
+        {}, []),
+    _fn('recommend_dishes', '基于顾客历史偏好推荐菜品，每条带推荐理由', {
+        'limit': {'type': 'integer', 'description': '返回条数，默认 6'},
+    }, []),
 ]
 
 
@@ -236,6 +242,25 @@ def t_submit_review(session, args):
     return {'ok': True, 'message': '评价已提交'}
 
 
+def t_get_my_history(session, args):
+    """返回顾客的口味画像：常点商户、常点菜品、客单价、常点时段。"""
+    profile = build_profile(session.customer)
+    _audit(session, 'get_my_history', 'customer', session.customer_id, '')
+    return profile
+
+
+def t_recommend_dishes(session, args):
+    """基于历史偏好推荐菜品，每条带 reason（可解释）。"""
+    try:
+        limit = int(args.get('limit') or 6)
+    except (TypeError, ValueError):
+        limit = 6
+    dishes = recommend_dishes(session.customer, limit=max(1, min(limit, 10)))
+    _audit(session, 'recommend_dishes', 'customer', session.customer_id,
+           json.dumps(args, ensure_ascii=False))
+    return {'list': dishes}
+
+
 DISPATCH = {
     'search_merchant': t_search_merchant,
     'search_menu': t_search_menu,
@@ -244,6 +269,8 @@ DISPATCH = {
     'get_order_status': t_get_order_status,
     'urge_order': t_urge_order,
     'submit_review': t_submit_review,
+    'get_my_history': t_get_my_history,
+    'recommend_dishes': t_recommend_dishes,
 }
 
 
