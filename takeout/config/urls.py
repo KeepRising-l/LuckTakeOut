@@ -130,6 +130,7 @@ merchant_api_patterns = [
         DELETE=product_api.category_delete,
     )),
     path('product/merchant', product_api.product_list),
+    path('product/image', product_api.upload_image),
     path('product', product_api.product_create),
     path('product/<int:pk>', by_method(
         GET=product_api.product_detail,

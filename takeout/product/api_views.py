@@ -174,8 +174,9 @@ def product_update(request, pk):
         p.stock = int(data.get('stock') or 0)
     if 'description' in data:
         p.description = data.get('description') or ''
-    if 'image' in data and data.get('image'):
-        p.image = data['image']
+    if 'image' in data:
+        # 允许传空字符串以清除图片
+        p.image = data.get('image') or ''
     p.save()
     return ok_m(product_to_dict(p), message='菜品更新成功')
 
@@ -214,3 +215,33 @@ def product_update_stock(request, pk):
         return fail_m('库存格式不正确')
     p.save()
     return ok_m(product_to_dict(p), message='库存已更新')
+
+
+@require_http_methods(['POST'])
+@merchant_approved_required
+def upload_image(request):
+    """菜品图片上传：multipart 字段 file，返回可直接写入 image 字段的绝对路径。
+
+    存储位置：MEDIA_ROOT/products/uploads/<uuid>.<ext>，
+    返回形如 /media/products/uploads/xxx.jpg（前端可直接作为 img src）。
+    """
+    import os
+    import uuid
+
+    from django.conf import settings
+    from django.core.files.storage import default_storage
+
+    f = request.FILES.get('file')
+    if not f:
+        return fail_m('请选择图片文件')
+    ext = os.path.splitext(f.name)[1].lower()
+    if ext not in ('.jpg', '.jpeg', '.png', '.webp', '.gif'):
+        return fail_m('仅支持 jpg/png/webp/gif 图片')
+    if f.size > 5 * 1024 * 1024:
+        return fail_m('图片不能超过 5MB')
+
+    saved = default_storage.save(f'products/uploads/{uuid.uuid4().hex}{ext}', f)
+    # MEDIA_URL 在运行时可能已被规范化为 /media/，这里统一拼成单斜杠绝对路径
+    media_prefix = '/' + str(settings.MEDIA_URL).lstrip('/')
+    url = media_prefix + saved
+    return ok_m({'url': url}, message='图片已上传')

@@ -4,7 +4,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import {
   fetchProducts, createProduct, updateProduct, deleteProduct,
-  updateProductStatus, updateProductStock, fetchCategories,
+  updateProductStatus, updateProductStock, fetchCategories, uploadProductImage,
   type Product, type Category,
 } from '@/api'
 import { money } from '@takeout/shared'
@@ -18,9 +18,13 @@ const loading = ref(false)
 
 const dialog = ref(false)
 const saving = ref(false)
+const uploading = ref(false)
 const editingId = ref<number | null>(null)
 const formRef = ref<FormInstance>()
-const form = reactive({ name: '', description: '', price: 1, stock: 0, categoryId: null as number | null })
+const form = reactive({
+  name: '', description: '', price: 1, stock: 0,
+  categoryId: null as number | null, image: '',
+})
 
 const rules: FormRules = {
   name: [{ required: true, message: '请输入菜品名称', trigger: 'blur' }],
@@ -58,7 +62,7 @@ function onPage(p: number) {
 
 function openCreate() {
   editingId.value = null
-  Object.assign(form, { name: '', description: '', price: 1, stock: 0, categoryId: categories.value[0]?.id ?? null })
+  Object.assign(form, { name: '', description: '', price: 1, stock: 0, categoryId: categories.value[0]?.id ?? null, image: '' })
   dialog.value = true
 }
 
@@ -70,8 +74,23 @@ function openEdit(row: Product) {
     price: row.price,
     stock: row.stock,
     categoryId: row.categoryId,
+    image: row.image || '',
   })
   dialog.value = true
+}
+
+/** 选择图片即上传，成功后把返回的 URL 写入表单，保存时随菜品一起提交 */
+async function onUploadImage(options: { file: File }) {
+  uploading.value = true
+  try {
+    const { url } = await uploadProductImage(options.file)
+    form.image = url
+    ElMessage.success('图片已上传')
+  } catch (e) {
+    ElMessage.error((e as Error).message)
+  } finally {
+    uploading.value = false
+  }
 }
 
 async function save() {
@@ -215,6 +234,28 @@ onMounted(load)
         <el-form-item label="库存" prop="stock">
           <el-input-number v-model="form.stock" :min="0" :step="1" :precision="0" style="width: 160px" />
         </el-form-item>
+        <el-form-item label="图片">
+          <div class="img-field">
+            <el-upload
+              class="img-upload"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              :show-file-list="false"
+              :http-request="onUploadImage"
+            >
+              <div class="img-box" v-loading="uploading">
+                <img v-if="form.image" :src="form.image" alt="菜品图" />
+                <div v-else class="img-empty">
+                  <span class="img-plus">+</span>
+                  <span>上传图片</span>
+                </div>
+              </div>
+            </el-upload>
+            <div class="img-tip">
+              支持 jpg/png/webp，≤5MB
+              <el-button v-if="form.image" link type="danger" size="small" @click="form.image = ''">移除</el-button>
+            </div>
+          </div>
+        </el-form-item>
         <el-form-item label="描述" prop="description">
           <el-input v-model="form.description" type="textarea" :rows="3" maxlength="200" />
         </el-form-item>
@@ -237,4 +278,23 @@ onMounted(load)
   display: flex; align-items: center; justify-content: center;
   font-size: 12px;
 }
+.img-field { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.img-box {
+  width: 96px; height: 96px;
+  border: 1px dashed var(--hairline-strong, #dcdfe6);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-2, #fafafa);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: border-color .2s;
+}
+.img-box:hover { border-color: var(--brand-500, #ff6f1c); }
+.img-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.img-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  color: var(--ink-3, #8c8c8c); font-size: 12px;
+}
+.img-plus { font-size: 20px; line-height: 1; }
+.img-tip { font-size: 12px; color: var(--ink-3, #8c8c8c); display: flex; align-items: center; gap: 8px; }
 </style>

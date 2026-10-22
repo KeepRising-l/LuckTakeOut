@@ -79,6 +79,11 @@ export const fetchProducts = (params: { page: number; size: number }) =>
   http.get<never, PageData<Product>>('/product/merchant', { params })
 export const createProduct = (data: { name: string; description: string; price: number; stock: number; categoryId: number | null; image?: string }) =>
   http.post<never, Product>('/product', data)
+export const uploadProductImage = (file: File) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  return http.post<never, { url: string }>('/product/image', fd)
+}
 export const updateProduct = (id: number, data: Record<string, unknown>) =>
   http.put<never, Product>(`/product/${id}`, data)
 export const deleteProduct = (id: number) => http.delete<never, unknown>(`/product/${id}`)

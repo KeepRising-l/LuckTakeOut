@@ -30,9 +30,38 @@ cd web && npm install && web\run-dev.bat
 | 骑手端 | http://localhost:5175 | http://127.0.0.1:8091/rider/ |
 
 ## 测试账号
-- 顾客：任意手机号 + 验证码 `123456`
-- 商户：`merchant1` / `merchant123`（merchant2、3 同密码）
+- 顾客：任意手机号 + 验证码 `123456`（`13700000001` 为演示账号，含历史订单）
+- 商户：统一密码 `merchant123`
+
+| 账号 | 店铺 | 品类 |
+| --- | --- | --- |
+| `merchant1` | 川香小馆 | 川菜 |
+| `merchant2` | 快乐奶茶 | 奶茶饮品 |
+| `coffee1` | 晨光咖啡 | 咖啡烘焙 |
+| `noodle1` | 面面俱到 | 面食 |
+| `fastfood1` | 快意小厨 | 快餐便当 |
+| `sushi1` | 江户寿司 | 寿司日料 |
+
 - 骑手：`rider1` / `rider123`
+
+## 演示数据
+
+```bat
+cd takeout
+.venv\Scripts\python.exe scripts\fetch_food_images.py   :: 抓取自由许可菜品图（可选，已入库可跳过）
+.venv\Scripts\python.exe manage.py seed_shops           :: 生成 6 家商户与 28 道菜
+```
+
+图片来自 Wikimedia Commons / TheMealDB 的 CC 或公有领域素材，来源与许可清单见
+`takeout/media/products/sources.json`。
+
+## 图片存储
+
+- **文件**：全部落在 `takeout/media/`（`MEDIA_ROOT`），数据库只存路径字符串
+- **目录**：`products/<店铺>/` 演示菜品图 ｜ `products/uploads/` 商家后台上传 ｜ `avatar/` 门店头像
+- **访问**：开发态由 Django `static()` 在 `/media/...` 下托管，Vite 已把 `/media` 代理到 8091；
+  生产环境建议交给 nginx 直接托管，不要走 Django
+- **商家上传**：菜品管理 → 新增/编辑菜品 → 图片 → 选择本地图片即上传（≤5MB，jpg/png/webp/gif）
 
 ## 技术栈
 - 后端：Django + SQLite（可切 MySQL），ResultAPI `{code, info, data}`，三类端独立盐值签名 token

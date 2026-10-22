@@ -49,6 +49,12 @@ async function doLogin() {
     loading.value = false
   }
 }
+
+// 演示账号：customer1（测试顾客，已有 5 笔历史订单），验证码为开发环境固定值
+function fillTest() {
+  phone.value = '13700000001'
+  code.value = '123456'
+}
 </script>
 
 <template>
@@ -80,7 +86,10 @@ async function doLogin() {
       <van-button type="primary" block round size="large" class="login-btn" :loading="loading" @click="doLogin">
         登录
       </van-button>
-      <p class="login-tip">未注册的手机号将自动创建账号</p>
+      <van-button round block plain size="small" class="test-btn" @click="fillTest">
+        一键填入测试账号
+      </van-button>
+      <p class="login-tip">测试账号 13700000001 · 验证码 123456<br>未注册的手机号将自动创建账号</p>
     </div>
   </div>
 </template>
@@ -141,10 +150,17 @@ async function doLogin() {
   font-weight: 600;
   letter-spacing: 2px;
 }
+.test-btn {
+  margin: 12px 16px 0;
+  width: calc(100% - 32px);
+  color: var(--ink-3);
+  font-size: var(--text-sm);
+}
 .login-tip {
   margin-top: 16px;
   text-align: center;
   font-size: var(--text-sm);
   color: var(--ink-3);
+  line-height: 1.8;
 }
 </style>
