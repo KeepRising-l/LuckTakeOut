@@ -11,9 +11,6 @@ const username = ref('')
 const password = ref('')
 const submitting = ref(false)
 
-// 测试账号入口只在开发构建展示，生产构建不暴露演示凭据
-const isDev = import.meta.env.DEV
-
 function fillTest() {
   username.value = 'rider1'
   password.value = 'rider123'
@@ -72,9 +69,10 @@ async function submit() {
           <van-button round block type="primary" :loading="submitting" @click="submit">
             登 录
           </van-button>
-          <van-button v-if="isDev" round block plain size="small" class="test-btn" @click="fillTest">
-            一键填入测试账号
+          <van-button round block plain size="small" class="test-btn" @click="fillTest">
+            一键填充测试账号
           </van-button>
+          <p class="login-tip">测试账号：rider1 / rider123</p>
         </div>
       </van-form>
     </div>
@@ -129,5 +127,11 @@ async function submit() {
 .test-btn {
   margin-top: 14px;
   width: 100%;
+}
+.login-tip {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
 }
 </style>

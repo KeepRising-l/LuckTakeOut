@@ -43,6 +43,7 @@ cd web && npm install && web\run-dev.bat
 | `sushi1` | 江户寿司 | 寿司日料 |
 
 - 骑手：`rider1` / `rider123`
+- 运营端：`platform` / `platform123`（`/admin/`，由 `seed_demo` 生成；四端登录页均有「一键填充演示账号」）
 
 ## 演示数据
 

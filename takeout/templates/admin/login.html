@@ -1,0 +1,16 @@
+{% extends "admin/login.html" %}
+
+{% block content %}
+  {{ block.super }}
+  <div style="text-align:center;margin:2px 0 16px;">
+    <button type="button" class="button" onclick="fillDemoAccount()">
+      一键填充演示账号（platform / platform123）
+    </button>
+  </div>
+  <script>
+    function fillDemoAccount() {
+      document.getElementById('id_username').value = 'platform';
+      document.getElementById('id_password').value = 'platform123';
+    }
+  </script>
+{% endblock %}

@@ -8,11 +8,8 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const auth = useAuthStore()
 
-// 测试账号提示只在开发构建展示，生产构建不暴露演示凭据
-const isDev = import.meta.env.DEV
-
 const phone = ref('')
-const code = ref(isDev ? '123456' : '')
+const code = ref('123456')
 const counting = ref(false)
 const countdown = ref(0)
 const loading = ref(false)
@@ -91,10 +88,10 @@ function fillTest() {
       <van-button type="primary" block round size="large" class="login-btn" :loading="loading" @click="doLogin">
         登录
       </van-button>
-      <van-button v-if="isDev" round block plain size="small" class="test-btn" @click="fillTest">
+      <van-button round block plain size="small" class="test-btn" @click="fillTest">
         一键填入测试账号
       </van-button>
-      <p v-if="isDev" class="login-tip">测试账号 13700000001 · 验证码 123456<br>未注册的手机号将自动创建账号</p>
+      <p class="login-tip">测试账号 13700000001 · 验证码 123456<br>未注册的手机号将自动创建账号</p>
     </div>
   </div>
 </template>

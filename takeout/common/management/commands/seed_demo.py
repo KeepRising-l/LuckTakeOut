@@ -51,6 +51,15 @@ class Command(BaseCommand):
                                   description=desc, status=10),
                 )
 
+        # 平台运营演示账号（/admin/ 登录，公开演示凭据见 README）
+        p_auth, created = User.objects.get_or_create(
+            username='platform',
+            defaults=dict(is_staff=True, is_superuser=True),
+        )
+        if created:
+            p_auth.set_password('platform123')
+            p_auth.save()
+
         r_auth, created = User.objects.get_or_create(username='rider1')
         if created:
             r_auth.set_password('rider123')
