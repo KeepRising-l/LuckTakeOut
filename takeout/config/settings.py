@@ -138,11 +138,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# ---- AI 大语言模型（硅基流动，OpenAI 兼容接口）----
+# ---- AI 大语言模型（OpenAI 兼容接口，默认经 rayagent 中转的 DeepSeek）----
 # 通过环境变量注入，未配置 Key 时自动使用内置 Mock，便于本地联调。
-LLM_BASE_URL = os.environ.get('LLM_BASE_URL', 'https://api.siliconflow.cn/v1')
+LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://rayagent.cloud:2026/v1")
 LLM_API_KEY = os.environ.get('LLM_API_KEY', '')
-LLM_MODEL = os.environ.get('LLM_MODEL', 'deepseek-ai/DeepSeek-V4-Flash')
+LLM_MODEL = os.environ.get("LLM_MODEL", "deepseek-v4.1-flash")
 
 # 平台统一配送费（本期为固定值，下单时快照入订单）
 DELIVERY_FEE = Decimal(os.environ.get('DELIVERY_FEE', '2.00'))

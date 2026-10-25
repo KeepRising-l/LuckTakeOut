@@ -5,6 +5,7 @@
 """
 
 import json
+import re
 import urllib.error
 import urllib.request
 
@@ -114,6 +115,22 @@ def _mock_completion(messages):
     last_user = (user_msgs[-1].get('content') or '') if user_msgs else ''
     res = _tool_results(messages)
     called = set(res.keys())
+
+    # --- 能力询问与无意义输入：先介绍能力，不盲目进下单链路 ---
+    stripped = re.sub(r'[\s?？!！。，,.~～?]*', '', last_user)
+    if not stripped or any(
+        k in last_user for k in ('你能做什么', '能做什么', '你会什么', '怎么用', '你是谁', '帮助')
+    ):
+        return _text(
+            '我是 AI 点餐助手，可以帮你：\n'
+            '· 对话点餐：说「来一份川香小馆的招牌套餐」\n'
+            '· 个性化推荐：说「推荐点什么」或「随便来」\n'
+            '· 一键复购：说「再来一单」或「老样子」\n'
+            '· 查订单进度：说「我的订单到哪了」\n'
+            '· 催单：说「怎么还没到」\n'
+            '· 评价：说「给个好评」\n'
+            '想吃点什么，直接说～'
+        )
 
     # --- 推荐（先看历史，再给推荐）---
     if any(k in last_user for k in ('推荐', '吃什么', '吃点啥', '随便来', '猜我')):

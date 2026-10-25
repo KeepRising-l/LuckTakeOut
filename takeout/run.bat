@@ -10,8 +10,8 @@ if not defined LLM_API_KEY (
 )
 
 rem 可选：覆盖模型名与接口地址
-if not defined LLM_MODEL set LLM_MODEL=deepseek-ai/DeepSeek-V4-Flash
-if not defined LLM_BASE_URL set LLM_BASE_URL=https://api.siliconflow.cn/v1
+if not defined LLM_MODEL set LLM_MODEL=deepseek-v4.1-flash
+if not defined LLM_BASE_URL set LLM_BASE_URL=https://rayagent.cloud:2026/v1
 
 echo LLM_MODEL=%LLM_MODEL%
 echo LLM_BASE_URL=%LLM_BASE_URL%
