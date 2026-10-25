@@ -17,8 +17,8 @@ export const http: AxiosInstance = createRequest({
   },
 })
 
-/** AI 助手接口需登录：与其它请求共用令牌与 401 处理，仅把超时放宽 */
-const AI_TIMEOUT = { timeout: 60000 }
+/** AI 助手接口需登录：与其它请求共用令牌与 401 处理；推理模型多轮工具调用较慢，超时放宽到 180s */
+const AI_TIMEOUT = { timeout: 180000 }
 
 export interface UserInfo {
   id?: number

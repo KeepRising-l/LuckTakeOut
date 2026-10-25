@@ -16,6 +16,8 @@ interface Msg {
   text: string
   draft?: AiDraft
   confirmed?: boolean
+  /** 用户气泡候补：与后续消息合并成一条一起发送 */
+  pending?: boolean
 }
 
 const messages = ref<Msg[]>([
@@ -23,8 +25,14 @@ const messages = ref<Msg[]>([
 ])
 const input = ref('')
 const sending = ref(false)
+const thinkingSeconds = ref(0)
 const session = ref<AiSession>()
 const listRef = ref<HTMLElement>()
+
+/** 待发送消息缓冲：短暂停顿后合并为一条发送，处理中发消息不阻塞 */
+const outbox = ref<string[]>([])
+let flushTimer: ReturnType<typeof setTimeout> | undefined
+const MERGE_WAIT_MS = 1800
 
 async function ensureSession() {
   if (session.value) return session.value
@@ -38,22 +46,52 @@ function scrollBottom() {
   })
 }
 
-async function send(text?: string) {
+function send(text?: string) {
   const msg = (text ?? input.value).trim()
-  if (!msg || sending.value) return
+  if (!msg) return
   input.value = ''
-  messages.value.push({ role: 'user', text: msg })
+  // 与上一条还没发出的候补气泡合并展示，之后作为一条消息发给模型
+  const last = messages.value[messages.value.length - 1]
+  if (outbox.value.length && last?.role === 'user' && last.pending) {
+    last.text += `\n（补充：${msg}）`
+  } else {
+    messages.value.push({ role: 'user', text: msg, pending: true })
+  }
+  outbox.value.push(msg)
   scrollBottom()
+  scheduleFlush()
+}
+
+function scheduleFlush() {
+  if (flushTimer) clearTimeout(flushTimer)
+  flushTimer = setTimeout(flushOutbox, MERGE_WAIT_MS)
+}
+
+async function flushOutbox() {
+  flushTimer = undefined
+  if (sending.value || !outbox.value.length) return
+  const text = outbox.value.join('\n')
+  outbox.value = []
+  // 候补气泡转正
+  for (const m of messages.value) {
+    if (m.role === 'user' && m.pending) delete m.pending
+  }
+
   sending.value = true
+  thinkingSeconds.value = 0
+  const timer = setInterval(() => { thinkingSeconds.value += 1 }, 1000)
   try {
     const s = await ensureSession()
-    const { reply, draft } = await aiApi.chat(s.sessionId, msg)
+    const { reply, draft } = await aiApi.chat(s.sessionId, text)
     messages.value.push({ role: 'ai', text: reply, draft })
   } catch (e) {
     messages.value.push({ role: 'ai', text: `出错了：${(e as Error).message}` })
   } finally {
+    clearInterval(timer)
     sending.value = false
     scrollBottom()
+    // 等待期间又攒了新消息（或正在合并窗口内），稍候继续
+    if (outbox.value.length) scheduleFlush()
   }
 }
 
@@ -132,13 +170,13 @@ onMounted(async () => {
       </div>
       <div v-if="sending" class="msg-row ai">
         <div class="avatar ai"><van-icon name="service-o" /></div>
-        <div class="bubble-wrap"><div class="bubble typing">正在思考…</div></div>
+        <div class="bubble-wrap"><div class="bubble typing">正在思考… {{ thinkingSeconds > 3 ? `${thinkingSeconds}s` : '' }}</div></div>
       </div>
     </div>
 
     <div class="input-bar">
       <van-field v-model="input" placeholder="想吃什么？告诉我～" @keyup.enter="send()" />
-      <van-button type="primary" round :disabled="!input.trim() || sending" @click="send()">发送</van-button>
+      <van-button type="primary" round :disabled="!input.trim()" @click="send()">发送</van-button>
     </div>
   </div>
 </template>
