@@ -37,9 +37,9 @@ def merchant_products(request, pk):
 
 @require_http_methods(['GET'])
 def product_detail(request, pk):
-    p = ProductInfo.objects.filter(id=pk).first()
+    p = ProductInfo.objects.filter(id=pk, status=10).first()
     if not p:
-        return fail('商品不存在')
+        return fail('商品不存在或已下架')
     return ok(product_to_dict(p))
 
 

@@ -16,9 +16,10 @@ from merchant.models import MerchantInfo
 from order.models import OrderInfo, OrderItem
 from platform_ops.models import OperationLog
 from product.models import ProductInfo
+from review.models import Review
 from user.models import UserInfo
 
-from .models import ChatSession, OrderDraft
+from .models import ChatSession, OrderDraft, OrderDraftItem
 from .recommend import build_profile, build_reorder, recommend_dishes
 from .tools import execute_tool
 
@@ -131,6 +132,71 @@ class AiAuditTest(TestCase):
         self.assertEqual(log.actor_id, self.customer.id)
         self.assertEqual(log.actor_role, 'ai')
         self.assertEqual(log.action, 'search_merchant')
+
+
+class AiToolGuardTest(TestCase):
+    """工具参数异常时的兜底：草稿过滤不可售/非法数量，评价查重与评分钳制。"""
+
+    def setUp(self):
+        self.auth_user, self.customer = make_customer('ai_guard', '守卫顾客', '13800000021')
+        self.session = ChatSession.objects.create(customer=self.customer, status=10)
+        self.merchant = make_merchant('ai_guard_shop', '测试商户')
+        self.p_ok = ProductInfo.objects.create(
+            merchant=self.merchant, name='可点菜品', price=Decimal('10.00'), stock=5, status=10,
+        )
+        self.p_off = ProductInfo.objects.create(
+            merchant=self.merchant, name='下架菜品', price=Decimal('10.00'), stock=5, status=20,
+        )
+
+    def test_create_draft_skips_offline_and_bad_quantity(self):
+        result = execute_tool('create_draft', {
+            'merchant_id': self.merchant.id,
+            'items': [
+                {'product_id': self.p_ok.id, 'quantity': 2},
+                {'product_id': self.p_off.id, 'quantity': 1},
+                {'product_id': self.p_ok.id, 'quantity': -3},
+                {'product_id': self.p_ok.id, 'quantity': 'abc'},
+            ],
+        }, self.session)
+        draft = OrderDraft.objects.get(id=result['draftId'])
+        self.assertEqual(list(draft.items.values_list('quantity', flat=True)), [2])
+
+    def test_create_draft_all_invalid_returns_error(self):
+        result = execute_tool('create_draft', {
+            'merchant_id': self.merchant.id,
+            'items': [{'product_id': self.p_off.id, 'quantity': 1}],
+        }, self.session)
+        self.assertIn('error', result)
+        self.assertEqual(OrderDraft.objects.count(), 0)
+
+    def test_confirm_rejects_negative_quantity_draft(self):
+        draft = OrderDraft.objects.create(
+            session=self.session, customer=self.customer, merchant=self.merchant,
+            total_amount=Decimal('-10'), status=OrderDraft.STATUS_PENDING,
+        )
+        OrderDraftItem.objects.create(
+            draft=draft, product=self.p_ok, quantity=-1, price_snapshot=self.p_ok.price,
+        )
+        resp = self.client.post(
+            f'/api/v1/ai/drafts/{draft.id}/confirm', data='{}', content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {make_token(self.auth_user)}',
+        )
+        self.assertIn('数量非法', resp.json()['info'])
+
+    def test_submit_review_clamps_rating_and_rejects_duplicate(self):
+        order = OrderInfo.objects.create(
+            order_no='AIGUARD01', user=self.customer, merchant=self.merchant,
+            address_snapshot='测试地址', total_amount=10, delivery_fee=Decimal('2.00'),
+            pay_amount=12, status=OrderInfo.STATUS_FINISHED,
+        )
+        first = execute_tool('submit_review', {'order_id': order.id, 'rating': 99}, self.session)
+        self.assertTrue(first['ok'])
+        review = Review.objects.get(order=order)
+        self.assertEqual(review.rating, 5)
+        second = execute_tool('submit_review', {'order_id': order.id, 'rating': 3}, self.session)
+        self.assertFalse(second['ok'])
+        self.assertIn('已评价过', second['message'])
+        self.assertEqual(Review.objects.filter(order=order).count(), 1)
 
 
 class RecommendTest(TestCase):

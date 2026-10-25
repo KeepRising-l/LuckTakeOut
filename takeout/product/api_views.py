@@ -3,6 +3,7 @@
 from decimal import Decimal, InvalidOperation
 
 from django.core.paginator import Paginator
+from django.db.models import ProtectedError
 from django.views.decorators.http import require_http_methods
 
 from common.auth import merchant_approved_required
@@ -13,6 +14,33 @@ from .models import ProductCategory, ProductInfo
 
 PRODUCT_STATUS_MAP = {10: 'ACTIVE', 20: 'INACTIVE'}
 PRODUCT_STATUS_REV = {'ACTIVE': 10, 'INACTIVE': 20}
+
+
+def _parse_price(value):
+    """解析正数价格；NaN/负数/格式错误一律视为非法。"""
+    try:
+        price = Decimal(str(value or 0))
+    except (InvalidOperation, ValueError):
+        return None
+    if not price.is_finite() or price <= 0:
+        return None
+    return price
+
+
+def _parse_stock(value):
+    """解析非负整数库存。"""
+    try:
+        stock = int(value or 0)
+    except (TypeError, ValueError):
+        return None
+    return stock if stock >= 0 else None
+
+
+def _to_int_or(value, default):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def product_to_dict(p):
@@ -61,7 +89,7 @@ def category_create(request):
     c = ProductCategory.objects.create(
         merchant=request.merchant,
         name=name,
-        sort=int(data.get('sortOrder') or 0),
+        sort=_to_int_or(data.get('sortOrder'), 0),
     )
     return ok_m(category_to_dict(c), message='分类创建成功')
 
@@ -76,7 +104,7 @@ def category_update(request, pk):
     if data.get('name'):
         c.name = data['name']
     if 'sortOrder' in data:
-        c.sort = int(data.get('sortOrder') or 0)
+        c.sort = _to_int_or(data.get('sortOrder'), 0)
     c.save()
     return ok_m(category_to_dict(c), message='分类更新成功')
 
@@ -128,18 +156,20 @@ def product_create(request):
     name = (data.get('name') or '').strip()
     if not name:
         return fail_m('菜品名称不能为空')
-    try:
-        price = Decimal(str(data.get('price') or 0))
-    except (InvalidOperation, ValueError):
-        return fail_m('价格格式不正确')
+    price = _parse_price(data.get('price'))
+    if price is None:
+        return fail_m('价格必须为大于 0 的数字')
+    stock = _parse_stock(data.get('stock'))
+    if stock is None:
+        return fail_m('库存必须为不小于 0 的整数')
     p = ProductInfo.objects.create(
         merchant=request.merchant,
-        category_id=data.get('categoryId') or None,
+        category_id=_to_int_or(data.get('categoryId'), None),
         name=name,
         description=data.get('description') or '',
         image=data.get('image') or '',
         price=price,
-        stock=int(data.get('stock') or 0),
+        stock=stock,
         status=PRODUCT_STATUS_REV.get(data.get('status'), 10),
     )
     return ok_m(product_to_dict(p), message='菜品添加成功')
@@ -164,14 +194,17 @@ def product_update(request, pk):
     if data.get('name'):
         p.name = data['name']
     if 'categoryId' in data:
-        p.category_id = data.get('categoryId') or None
+        p.category_id = _to_int_or(data.get('categoryId'), None)
     if 'price' in data:
-        try:
-            p.price = Decimal(str(data.get('price') or 0))
-        except (InvalidOperation, ValueError):
-            return fail_m('价格格式不正确')
+        price = _parse_price(data.get('price'))
+        if price is None:
+            return fail_m('价格必须为大于 0 的数字')
+        p.price = price
     if 'stock' in data:
-        p.stock = int(data.get('stock') or 0)
+        stock = _parse_stock(data.get('stock'))
+        if stock is None:
+            return fail_m('库存必须为不小于 0 的整数')
+        p.stock = stock
     if 'description' in data:
         p.description = data.get('description') or ''
     if 'image' in data:
@@ -184,7 +217,10 @@ def product_update(request, pk):
 @require_http_methods(['DELETE', 'POST'])
 @merchant_approved_required
 def product_delete(request, pk):
-    ProductInfo.objects.filter(id=pk, merchant=request.merchant).delete()
+    try:
+        ProductInfo.objects.filter(id=pk, merchant=request.merchant).delete()
+    except ProtectedError:
+        return fail_m('该菜品已产生订单，无法删除，请改为下架')
     return ok_m(True, message='菜品已删除')
 
 
@@ -209,10 +245,10 @@ def product_update_stock(request, pk):
     if not p:
         return fail_m('菜品不存在')
     data = get_json(request)
-    try:
-        p.stock = int(data.get('stock') or 0)
-    except ValueError:
-        return fail_m('库存格式不正确')
+    stock = _parse_stock(data.get('stock'))
+    if stock is None:
+        return fail_m('库存必须为不小于 0 的整数')
+    p.stock = stock
     p.save()
     return ok_m(product_to_dict(p), message='库存已更新')
 

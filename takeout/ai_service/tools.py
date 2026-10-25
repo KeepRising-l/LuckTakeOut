@@ -168,12 +168,20 @@ def t_create_draft(session, args):
     total = Decimal('0')
     resolved = []
     for it in (args.get('items') or []):
-        p = ProductInfo.objects.filter(id=it.get('product_id'), merchant=merchant).first()
+        # 只收在售菜品；数量必须为正整数，防止模型参数异常造出负金额草稿
+        p = ProductInfo.objects.filter(id=it.get('product_id'), merchant=merchant, status=10).first()
         if not p:
             continue
-        qty = int(it.get('quantity') or 1)
+        try:
+            qty = int(it.get('quantity') or 1)
+        except (TypeError, ValueError):
+            qty = 0
+        if qty <= 0:
+            continue
         total += p.price * qty
         resolved.append((p, qty))
+    if not resolved:
+        return {'error': '草稿内容为空或菜品均不可售'}
 
     draft = OrderDraft.objects.create(
         session=session, customer=session.customer, merchant=merchant,
@@ -232,11 +240,14 @@ def t_submit_review(session, args):
         return {'error': '没有找到订单'}
     if o.status != OrderInfo.STATUS_FINISHED:
         return {'ok': False, 'message': '订单尚未完成，暂不能评价'}
-    rating = int(args.get('rating') or 5)
+    if Review.objects.filter(order=o).exists():
+        return {'ok': False, 'message': '该订单已评价过'}
+    # 与顾客端评价接口同口径：评分钳制到 1-5
+    rating = min(5, max(1, int(args.get('rating') or 5)))
     Review.objects.create(
         order=o, user=session.customer, merchant=o.merchant,
         target_type=Review.TARGET_MERCHANT, rating=rating,
-        content=args.get('content') or '',
+        content=(args.get('content') or '')[:255],
     )
     _audit(session, 'submit_review', 'order', o.id, json.dumps(args, ensure_ascii=False))
     return {'ok': True, 'message': '评价已提交'}

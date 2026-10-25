@@ -2,14 +2,18 @@
 
 from datetime import date, timedelta
 
+from django.db import transaction
 from django.db.models import Count, Sum
+from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from common.auth import merchant_approved_required
 from common.response import fail_m, ok_m
 from common.utils import get_json
+from payment.models import PaymentRecord, RefundRecord
 
 from .models import OrderInfo, OrderItem
+from .services import restore_stock
 from .state import MERCHANT_TARGET_STATUSES, change_status
 
 
@@ -24,6 +28,7 @@ def order_to_dict(o):
         }
         for it in o.items.all()
     ]
+    refund = o.refunds.order_by('-id').first()
     return {
         'id': o.id,
         'orderNumber': o.order_no,
@@ -37,6 +42,9 @@ def order_to_dict(o):
         'paymentMethod': '模拟支付',
         'remark': o.remark,
         'status': o.status,
+        'refundStatus': refund.status if refund else None,
+        'refundReason': refund.reason if refund else '',
+        'refundRemark': refund.review_remark if refund else '',
         'createTime': o.create_time.strftime('%Y-%m-%d %H:%M:%S') if o.create_time else '',
     }
 
@@ -101,6 +109,9 @@ def order_update_status(request, pk):
         return fail_m('未知的订单状态')
     if target not in MERCHANT_TARGET_STATUSES:
         return fail_m('未知的订单状态')
+    if o.status == OrderInfo.STATUS_REFUNDING:
+        # 退款审核中只能走退款审核接口，防止通用状态接口把订单改回「已接单」绕过审核
+        return fail_m('退款审核中的订单请在退款审核中处理')
     changed, message = change_status(
         o, target, operator_role='merchant', operator_id=request.merchant.id,
     )
@@ -115,12 +126,63 @@ def order_cancel(request, pk):
     o = OrderInfo.objects.filter(id=pk, merchant=request.merchant).first()
     if not o:
         return fail_m('订单不存在')
-    changed, message = change_status(
-        o, OrderInfo.STATUS_CANCELED, operator_role='merchant', operator_id=request.merchant.id,
-    )
-    if not changed:
-        return fail_m(message)
+    with transaction.atomic():
+        changed, message = change_status(
+            o, OrderInfo.STATUS_CANCELED, operator_role='merchant', operator_id=request.merchant.id,
+        )
+        if not changed:
+            return fail_m(message)
+        restore_stock(o)
     return ok_m(order_to_dict(o), message='订单已取消')
+
+
+@require_http_methods(['PUT', 'POST'])
+@merchant_approved_required
+def order_refund_review(request, pk):
+    """商户审核退款申请：同意 → 模拟退款到账（订单「已退款」）；拒绝 → 退回申请前状态。
+
+    退款同意不回补库存（与取消订单的口径区分：退款是交易完成后的资金退回）。
+    """
+    with transaction.atomic():
+        o = OrderInfo.objects.select_for_update().filter(
+            id=pk, merchant=request.merchant
+        ).first()
+        if not o:
+            return fail_m('订单不存在')
+        if o.status != OrderInfo.STATUS_REFUNDING:
+            return fail_m('订单不在退款审核中')
+        refund = o.refunds.filter(status=RefundRecord.STATUS_PENDING).order_by('-id').first()
+        if not refund:
+            return fail_m('没有待审核的退款申请')
+
+        data = get_json(request)
+        approve = bool(data.get('approve'))
+        now = timezone.now()
+
+        if approve:
+            changed, message = change_status(
+                o, OrderInfo.STATUS_REFUNDED,
+                operator_role='merchant', operator_id=request.merchant.id,
+            )
+            if not changed:
+                return fail_m(message)
+            refund.status = RefundRecord.STATUS_APPROVED
+            PaymentRecord.objects.filter(order=o, status=20).update(status=40)
+            message = '已同意退款（模拟到账）'
+        else:
+            changed, message = change_status(
+                o, refund.from_status,
+                operator_role='merchant', operator_id=request.merchant.id,
+            )
+            if not changed:
+                return fail_m(message)
+            refund.status = RefundRecord.STATUS_REJECTED
+            message = '已拒绝退款申请'
+
+        refund.review_remark = (data.get('remark') or '').strip()[:255]
+        refund.review_time = now
+        refund.save()
+    return ok_m(order_to_dict(o), message=message)
 
 
 # ---- 统计 ----

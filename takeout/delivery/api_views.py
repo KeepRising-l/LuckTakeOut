@@ -6,6 +6,7 @@
 from datetime import date
 
 from django.contrib.auth import authenticate
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
@@ -17,6 +18,9 @@ from order.models import OrderInfo
 from order.state import change_status
 
 from .models import Rider
+
+# 前端任务状态口径：6 = 已送达（接单即进入配送中，本期不设中间态）
+TASK_STATUS_COMPLETED = 6
 
 
 def rider_to_dict(r):
@@ -98,10 +102,15 @@ def rider_info(request, rider_id):
 def rider_status(request, rider_id):
     if rider_id != request.rider.id:
         return fail('无权修改其他骑手状态', status=403)
-    r = request.rider
-    work_status = int(request.GET.get('workStatus') or 1)
-    r.status = 0 if work_status in (1, 2) else 1
-    r.save()
+    data = get_json(request)
+    raw = data.get('workStatus') or request.GET.get('workStatus')
+    try:
+        work_status = int(raw or 1)
+    except (TypeError, ValueError):
+        return fail('工作状态格式不正确')
+    # 1=接单中(上线) 2=休息中(下线)，与 rider_to_dict 的展示口径互逆
+    request.rider.status = 0 if work_status == 1 else 1
+    request.rider.save()
     return ok({'workStatus': work_status})
 
 
@@ -137,27 +146,35 @@ def task_detail(request, task_id):
     o = OrderInfo.objects.filter(id=task_id).first()
     if not o:
         return fail('任务不存在')
+    # 可见范围与任务列表一致：待抢单的任务，或已分配给自己的任务
+    is_grabbable = o.status == OrderInfo.STATUS_PENDING_ACCEPT and o.rider_id is None
+    if o.rider_id != request.rider.id and not is_grabbable:
+        return fail('无权查看其他骑手的任务', status=403)
     return ok(task_to_dict(o))
 
 
 @require_http_methods(['POST'])
 @rider_login_required
 def accept_task(request, task_id):
-    """接单：记录骑手并直接进入配送中（本期不设中间态）。"""
-    o = OrderInfo.objects.filter(id=task_id).first()
-    if not o:
-        return fail('任务不存在')
-    if o.status != OrderInfo.STATUS_PENDING_ACCEPT:
-        return fail('订单状态不允许接单')
-    rider = request.rider
-    if o.rider_id and o.rider_id != rider.id:
-        return fail('订单已被其他骑手接单')
-    changed, message = change_status(
-        o, OrderInfo.STATUS_DELIVERING, operator_role='rider', operator_id=rider.id,
-        rider=rider,
-    )
-    if not changed:
-        return fail(message)
+    """接单：记录骑手并直接进入配送中（本期不设中间态）。
+
+    锁单读取后再校验，防止两名骑手并发抢单互相覆盖。
+    """
+    with transaction.atomic():
+        o = OrderInfo.objects.select_for_update().filter(id=task_id).first()
+        if not o:
+            return fail('任务不存在')
+        if o.status != OrderInfo.STATUS_PENDING_ACCEPT:
+            return fail('订单状态不允许接单')
+        rider = request.rider
+        if o.rider_id and o.rider_id != rider.id:
+            return fail('订单已被其他骑手接单')
+        changed, message = change_status(
+            o, OrderInfo.STATUS_DELIVERING, operator_role='rider', operator_id=rider.id,
+            rider=rider,
+        )
+        if not changed:
+            return fail(message)
     return ok(task_to_dict(o), info='接单成功')
 
 
@@ -175,7 +192,7 @@ def update_task_status(request, task_id):
         status = int(data.get('status'))
     except (TypeError, ValueError):
         return fail('未知的配送状态')
-    if status != 6:
+    if status != TASK_STATUS_COMPLETED:
         return fail('未知的配送状态')
     now = timezone.now()
     changed, message = change_status(

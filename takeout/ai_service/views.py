@@ -17,6 +17,7 @@ from common.response import fail, ok
 from common.utils import get_json
 from order.models import OrderInfo, OrderItem, OrderStatusLog
 from payment.models import PaymentRecord
+from product.models import ProductInfo
 from user.models import UserInfo
 
 from .agent import run_agent
@@ -111,24 +112,30 @@ def draft_confirm(request, pk):
     if d.status != OrderDraft.STATUS_PENDING:
         return fail('草稿状态不允许确认')
 
-    total = Decimal('0')
-    resolved = []
-    for it in d.items.all():
-        p = it.product
-        if p.status != 10:
-            return fail(f'「{p.name}」已下架')
-        if p.stock < it.quantity:
-            return fail(f'「{p.name}」库存不足')
-        amount = p.price * it.quantity
-        total += amount
-        resolved.append((p, it, amount))
-    if not resolved:
-        return fail('草稿内容为空')
-
     delivery_fee = settings.DELIVERY_FEE
-    pay_amount = total + delivery_fee
 
     with transaction.atomic():
+        # 行锁内复核上架/数量/库存，全部通过后再扣减，防止确认瞬间超卖或负数量订单
+        total = Decimal('0')
+        resolved = []
+        for it in d.items.all():
+            p = ProductInfo.objects.select_for_update().filter(id=it.product_id).first()
+            if p is None or p.status != 10:
+                return fail(f'「{it.product.name}」已下架')
+            if it.quantity <= 0:
+                return fail(f'「{p.name}」数量非法')
+            if p.stock < it.quantity:
+                return fail(f'「{p.name}」库存不足')
+            resolved.append((p, it.quantity))
+        if not resolved:
+            return fail('草稿内容为空')
+
+        for p, qty in resolved:
+            p.stock -= qty
+            p.save(update_fields=['stock'])
+            total += p.price * qty
+        pay_amount = total + delivery_fee
+
         order = OrderInfo.objects.create(
             order_no=uuid.uuid4().hex[:20],
             user=d.customer,
@@ -140,10 +147,10 @@ def draft_confirm(request, pk):
             status=OrderInfo.STATUS_PENDING_PAY,
             remark='AI 点餐助手代下单',
         )
-        for p, it, amount in resolved:
+        for p, qty in resolved:
             OrderItem.objects.create(
                 order=order, product=p, product_name=p.name,
-                price=p.price, quantity=it.quantity, amount=amount,
+                price=p.price, quantity=qty, amount=p.price * qty,
             )
         OrderStatusLog.objects.create(
             order=order, from_status=0, to_status=OrderInfo.STATUS_PENDING_PAY, operator_role='ai',

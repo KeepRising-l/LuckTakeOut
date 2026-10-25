@@ -1,7 +1,5 @@
 """用户域接口：登录、资料、收货地址。"""
 
-import random
-
 from django.contrib.auth.models import User
 from django.views.decorators.http import require_http_methods
 
@@ -11,7 +9,7 @@ from common.utils import get_json
 
 from .models import UserAddress, UserInfo
 
-# 演示用验证码存储（内存），并固定提供一个万能验证码
+# 演示环境固定万能验证码（README 已声明），正式接入短信后替换为随机码 + 有效期
 _CODE_STORE = {}
 DEV_CODE = '123456'
 
@@ -62,7 +60,7 @@ def auth_code(request):
     phone = (data.get('phone') or '').strip()
     if not phone:
         return fail('手机号不能为空')
-    code = DEV_CODE or f'{random.randint(0, 999999):06d}'
+    code = DEV_CODE
     _CODE_STORE[phone] = code
     # 演示环境直接把验证码返回，方便测试
     return ok({'phone': phone, 'code': code})
@@ -80,15 +78,6 @@ def auth_login(request):
     expected = _CODE_STORE.get(phone)
     if code != DEV_CODE and code != expected:
         return fail('验证码错误')
-    info = _find_or_create_user(phone)
-    token = make_token(info.auth_user)
-    return ok({'accessToken': token, 'refreshToken': token, 'user': _user_to_dict(info)})
-
-
-@require_http_methods(['POST'])
-def auth_callback(request):
-    data = get_json(request)
-    phone = (data.get('phone') or '').strip() or '13800000000'
     info = _find_or_create_user(phone)
     token = make_token(info.auth_user)
     return ok({'accessToken': token, 'refreshToken': token, 'user': _user_to_dict(info)})
@@ -133,7 +122,7 @@ def address_create(request):
     return ok(_addr_to_dict(addr))
 
 
-@require_http_methods(['GET', 'DELETE', 'POST'])
+@require_http_methods(['DELETE'])
 @api_login_required
 def address_delete(request, pk):
     info = UserInfo.objects.filter(auth_user=request.user).first()

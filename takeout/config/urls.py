@@ -50,7 +50,7 @@ def spa_serve(dist_root):
     def wrapper(request, path='index.html'):
         base = os.path.normpath(str(dist_root))
         full = os.path.normpath(os.path.join(base, path))
-        if full.startswith(base) and os.path.isfile(full):
+        if full.startswith(base + os.sep) and os.path.isfile(full):
             return FileResponse(open(full, 'rb'))
         index = os.path.join(base, 'index.html')
         if os.path.isfile(index):
@@ -62,8 +62,10 @@ def spa_serve(dist_root):
 
 def spa_asset(request, path):
     for dist_root in SPA_DIST_ROOTS.values():
-        full = os.path.normpath(os.path.join(str(dist_root), 'assets', path))
-        if os.path.isfile(full):
+        base = os.path.normpath(os.path.join(str(dist_root), 'assets'))
+        full = os.path.normpath(os.path.join(base, path))
+        # startswith(base + os.sep) 拦截 ../ 路径穿越，防止读到构建目录之外的文件
+        if full.startswith(base + os.sep) and os.path.isfile(full):
             return FileResponse(open(full, 'rb'))
     raise Http404('前端资源不存在：请在 web/ 目录执行 npm run build')
 
@@ -71,7 +73,6 @@ def spa_asset(request, path):
 api_patterns = [
     path('auth/code', user_views.auth_code),
     path('auth/login', user_views.auth_login),
-    path('auth/callback', user_views.auth_callback),
     path('users/profile', user_views.profile),
     path('addresses', by_method(GET=user_views.address_list, POST=user_views.address_create)),
     path('addresses/<int:pk>', user_views.address_delete),
@@ -85,6 +86,7 @@ api_patterns = [
     path('orders/user', order_views.order_list),
     path('orders/<int:pk>', order_views.order_detail),
     path('orders/<int:pk>/cancel', order_views.order_cancel),
+    path('orders/<int:pk>/refund', order_views.order_refund_apply),
     path('orders/<int:pk>/review', review_views.create_review),
     path('merchants/<int:pk>/reviews', review_views.merchant_reviews),
     path('orders/<int:pk>/pay', order_views.order_pay),
@@ -146,6 +148,7 @@ merchant_api_patterns = [
     path('order/<int:pk>', order_api.order_detail),
     path('order/<int:pk>/status', order_api.order_update_status),
     path('order/<int:pk>/cancel', order_api.order_cancel),
+    path('order/<int:pk>/refund/review', order_api.order_refund_review),
 
     path('stats/overview', order_api.stats_overview),
     path('stats/recent-orders', order_api.stats_recent_orders),

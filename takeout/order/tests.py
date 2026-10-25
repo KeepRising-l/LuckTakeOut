@@ -11,6 +11,7 @@ from django.test import TestCase
 
 from common.auth import make_merchant_token, make_token
 from merchant.models import MerchantInfo
+from payment.models import PaymentRecord, RefundRecord
 from product.models import ProductInfo
 from user.models import UserAddress, UserInfo
 
@@ -137,6 +138,219 @@ class CreateOrderPreconditionTest(TestCase):
         self._create(self._payload(deliveryFee=99))
         order = OrderInfo.objects.latest('id')
         self.assertEqual(float(order.delivery_fee), 2.0)
+
+
+class StockDeductionTest(TestCase):
+    """下单扣减库存，取消订单回补库存（防超卖）。"""
+
+    def setUp(self):
+        self.user, self.info = make_customer('sd_a', '顾客A', '13900000031')
+        self.token = make_token(self.user)
+
+        shop_user = User.objects.create_user(username='sd_shop', password='pw123456')
+        self.merchant = MerchantInfo.objects.create(
+            auth_user=shop_user, name='测试商户', status=20,
+        )
+        self.product = ProductInfo.objects.create(
+            merchant=self.merchant, name='测试菜品', price=10, stock=50, status=10,
+        )
+        self.address = UserAddress.objects.create(
+            user=self.info, receiver='顾客A', phone='13900000031', detail='示例路1号',
+        )
+
+    def _create(self, items):
+        payload = {
+            'merchantId': self.merchant.id,
+            'items': items,
+            'addressId': self.address.id,
+        }
+        return self.client.post(
+            '/api/v1/orders', data=json.dumps(payload), content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {self.token}',
+        )
+
+    def test_stock_is_deducted_after_create(self):
+        self._create([{'productId': self.product.id, 'quantity': 3}])
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 47)
+
+    def test_cancel_restores_stock(self):
+        self._create([{'productId': self.product.id, 'quantity': 3}])
+        order = OrderInfo.objects.latest('id')
+        self.client.post(
+            f'/api/v1/orders/{order.id}/cancel', HTTP_AUTHORIZATION=f'Bearer {self.token}',
+        )
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 50)
+
+    def test_insufficient_stock_is_rejected(self):
+        resp = self._create([{'productId': self.product.id, 'quantity': 51}])
+        self.assertIn('库存不足', resp.json()['info'])
+        self.assertEqual(OrderInfo.objects.count(), 0)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 50)
+
+    def test_duplicate_lines_share_stock_budget(self):
+        """同一菜品拆两行下单时按合并数量校验，防重复行绕过库存。"""
+        resp = self._create([
+            {'productId': self.product.id, 'quantity': 30},
+            {'productId': self.product.id, 'quantity': 30},
+        ])
+        self.assertIn('库存不足', resp.json()['info'])
+        self.assertEqual(OrderInfo.objects.count(), 0)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 50)
+
+    def test_non_numeric_ids_are_rejected_not_500(self):
+        payload = {
+            'merchantId': 'abc',
+            'items': [{'productId': self.product.id, 'quantity': 1}],
+            'addressId': self.address.id,
+        }
+        resp = self.client.post(
+            '/api/v1/orders', data=json.dumps(payload), content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {self.token}',
+        )
+        self.assertIn('商家不存在', resp.json()['info'])
+
+
+class RefundFlowTest(TestCase):
+    """退款闭环：顾客申请（已支付/待接单）→ 商户审核（同意/拒绝）。"""
+
+    def setUp(self):
+        self.user, self.info = make_customer('rf_c', '顾客A', '13900000051')
+        self.other_user, self.other_info = make_customer('rf_c2', '顾客B', '13900000052')
+        self.token = make_token(self.user)
+        self.merchant_auth = User.objects.create_user(username='rf_shop', password='pw123456')
+        self.merchant = MerchantInfo.objects.create(
+            auth_user=self.merchant_auth, name='测试商户', status=20,
+        )
+        self.other_shop_auth = User.objects.create_user(username='rf_shop2', password='pw123456')
+        self.other_merchant = MerchantInfo.objects.create(
+            auth_user=self.other_shop_auth, name='别家商户', status=20,
+        )
+        self.merchant_token = make_merchant_token(self.merchant_auth)
+        self.other_shop_token = make_merchant_token(self.other_shop_auth)
+        self.order = OrderInfo.objects.create(
+            order_no='RF0001', user=self.info, merchant=self.merchant,
+            address_snapshot='示例路1号', total_amount=10, delivery_fee=2, pay_amount=12,
+            status=OrderInfo.STATUS_PAID,
+        )
+        PaymentRecord.objects.create(order=self.order, amount=12, method='mock', status=20)
+
+    def _apply(self, token=None, payload=None):
+        return self.client.post(
+            f'/api/v1/orders/{self.order.id}/refund',
+            data=json.dumps(payload or {'reason': '不想要了'}), content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {token or self.token}',
+        )
+
+    def _review(self, payload, token=None, order_id=None):
+        return self.client.put(
+            f'/api/order/{order_id or self.order.id}/refund/review',
+            data=json.dumps(payload), content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {token or self.merchant_token}',
+        )
+
+    def test_apply_from_paid_enters_refunding(self):
+        resp = self._apply()
+        self.assertEqual(resp.json()['code'], '00000')
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, OrderInfo.STATUS_REFUNDING)
+        refund = RefundRecord.objects.get(order=self.order)
+        self.assertEqual(refund.status, RefundRecord.STATUS_PENDING)
+        self.assertEqual(refund.from_status, OrderInfo.STATUS_PAID)
+        self.assertEqual(float(refund.amount), 12.0)
+
+    def test_apply_from_pending_accept_records_origin(self):
+        self.order.status = OrderInfo.STATUS_PENDING_ACCEPT
+        self.order.save()
+        self._apply()
+        refund = RefundRecord.objects.get(order=self.order)
+        self.assertEqual(refund.from_status, OrderInfo.STATUS_PENDING_ACCEPT)
+
+    def test_apply_from_other_status_rejected(self):
+        self.order.status = OrderInfo.STATUS_DELIVERING
+        self.order.save()
+        resp = self._apply()
+        self.assertIn('不支持申请退款', resp.json()['info'])
+        self.assertEqual(RefundRecord.objects.count(), 0)
+
+    def test_duplicate_pending_apply_rejected(self):
+        self._apply()
+        resp = self._apply()
+        self.assertIn('已有退款申请待审核', resp.json()['info'])
+        self.assertEqual(RefundRecord.objects.count(), 1)
+
+    def test_other_customer_cannot_apply(self):
+        resp = self._apply(token=make_token(self.other_user))
+        self.assertIn('订单不存在', resp.json()['info'])
+        self.assertEqual(RefundRecord.objects.count(), 0)
+
+    def test_approve_refunds_and_marks_payment(self):
+        self._apply()
+        resp = self._review({'approve': True, 'remark': '同意'})
+        self.assertIn('已同意退款', resp.json()['info'])
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, OrderInfo.STATUS_REFUNDED)
+        refund = RefundRecord.objects.get(order=self.order)
+        self.assertEqual(refund.status, RefundRecord.STATUS_APPROVED)
+        self.assertEqual(refund.review_time, refund.review_time)
+        self.assertTrue(PaymentRecord.objects.filter(order=self.order, status=40).exists())
+
+    def test_reject_returns_to_origin_status(self):
+        self._apply()
+        resp = self._review({'approve': False, 'remark': '已出餐不便退款'})
+        self.assertIn('已拒绝退款申请', resp.json()['info'])
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, OrderInfo.STATUS_PAID)
+        refund = RefundRecord.objects.get(order=self.order)
+        self.assertEqual(refund.status, RefundRecord.STATUS_REJECTED)
+        self.assertFalse(PaymentRecord.objects.filter(order=self.order, status=40).exists())
+
+    def test_reject_from_pending_accept_returns_there(self):
+        self.order.status = OrderInfo.STATUS_PENDING_ACCEPT
+        self.order.save()
+        self._apply()
+        self._review({'approve': False})
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, OrderInfo.STATUS_PENDING_ACCEPT)
+
+    def test_other_merchant_cannot_review(self):
+        self._apply()
+        resp = self._review({'approve': True}, token=self.other_shop_token)
+        self.assertIn('订单不存在', resp.json()['info'])
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, OrderInfo.STATUS_REFUNDING)
+
+    def test_review_without_pending_apply_rejected(self):
+        resp = self._review({'approve': True})
+        self.assertIn('不在退款审核中', resp.json()['info'])
+
+    def test_refunding_order_cannot_be_cancelled_or_accepted(self):
+        self._apply()
+        # 顾客取消：状态不在可取消集合
+        resp = self.client.post(
+            f'/api/v1/orders/{self.order.id}/cancel', HTTP_AUTHORIZATION=f'Bearer {self.token}',
+        )
+        self.assertIn('不允许取消', resp.json()['info'])
+        # 商户接单：退款审核中的订单被引导走退款审核接口
+        resp2 = self.client.put(
+            f'/api/order/{self.order.id}/status', data=json.dumps({'status': 30}),
+            content_type='application/json', HTTP_AUTHORIZATION=f'Bearer {self.merchant_token}',
+        )
+        self.assertIn('退款审核中', resp2.json()['info'])
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, OrderInfo.STATUS_REFUNDING)
+
+    def test_order_detail_carries_refund_info(self):
+        self._apply()
+        resp = self.client.get(
+            f'/api/v1/orders/{self.order.id}', HTTP_AUTHORIZATION=f'Bearer {self.token}',
+        )
+        data = resp.json()['data']
+        self.assertEqual(data['refundStatus'], RefundRecord.STATUS_PENDING)
+        self.assertEqual(data['refundReason'], '不想要了')
 
 
 class MerchantStatusTransitionTest(TestCase):

@@ -46,9 +46,12 @@ def nearby(request):
 
 @require_http_methods(['GET'])
 def detail(request, pk):
-    m = MerchantInfo.objects.filter(id=pk).annotate(rating_avg=Avg('reviews__rating')).first()
+    # 顾客端只展示已过审商户（与 nearby 列表口径一致）
+    m = MerchantInfo.objects.filter(id=pk, status=20).annotate(
+        rating_avg=Avg('reviews__rating')
+    ).first()
     if not m:
-        return fail('商家不存在')
+        return fail('商家不存在或未通过审核')
     return ok(merchant_to_dict(m))
 
 

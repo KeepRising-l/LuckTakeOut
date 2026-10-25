@@ -1,5 +1,6 @@
 """评价接口：商户评价列表 + 顾客按单评价。"""
 
+from django.db.models import Avg, Count
 from django.views.decorators.http import require_http_methods
 
 from common.auth import api_login_required
@@ -28,12 +29,11 @@ def review_to_dict(r):
 
 @require_http_methods(['GET'])
 def merchant_reviews(request, pk):
-    """某商户的评价列表。"""
-    qs = Review.objects.filter(merchant_id=pk).order_by('-id')[:50]
-    items = [review_to_dict(r) for r in qs]
-    count = len(items)
-    avg = round(sum(i['rating'] for i in items) / count, 1) if count else 5.0
-    return ok({'list': items, 'total': count, 'avgRating': avg})
+    """某商户的评价列表（最近 50 条）；均分与总数统计全量评价。"""
+    agg = Review.objects.filter(merchant_id=pk).aggregate(total=Count('id'), avg=Avg('rating'))
+    items = [review_to_dict(r) for r in Review.objects.filter(merchant_id=pk).order_by('-id')[:50]]
+    avg = round(agg['avg'], 1) if agg['avg'] is not None else 5.0
+    return ok({'list': items, 'total': agg['total'] or 0, 'avgRating': avg})
 
 
 @require_http_methods(['POST'])
