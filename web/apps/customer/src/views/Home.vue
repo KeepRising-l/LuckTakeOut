@@ -23,16 +23,16 @@ const showAi = ref(false)
 const taste = ref<{ profile: TasteProfile; dishes: RecommendedDish[] } | null>(null)
 const reordering = ref(false)
 
-/** 分类入口：餐饮语义线性图标（FoodIcon）+ 暖色圆底 tint */
+/** 分类入口：餐饮语义线性图标（FoodIcon）+ 暖色圆底 tint；kw 为搜索过滤词，空串展示全部 */
 const cats = [
-  { name: '美食', icon: 'noodle', tint: 't1' },
-  { name: '奶茶', icon: 'milkTea', tint: 't2' },
-  { name: '快餐', icon: 'burger', tint: 't3' },
-  { name: '烧烤', icon: 'skewer', tint: 't4' },
-  { name: '水果', icon: 'watermelon', tint: 't5' },
-  { name: '甜品', icon: 'cake', tint: 't6' },
-  { name: '早餐', icon: 'egg', tint: 't7' },
-  { name: '夜宵', icon: 'moon', tint: 't8' },
+  { name: '美食', icon: 'noodle', tint: 't1', kw: '' },
+  { name: '奶茶', icon: 'milkTea', tint: 't2', kw: '奶茶' },
+  { name: '快餐', icon: 'burger', tint: 't3', kw: '快餐' },
+  { name: '烧烤', icon: 'skewer', tint: 't4', kw: '烧烤' },
+  { name: '水果', icon: 'watermelon', tint: 't5', kw: '水果' },
+  { name: '甜品', icon: 'cake', tint: 't6', kw: '甜品' },
+  { name: '早餐', icon: 'egg', tint: 't7', kw: '早餐' },
+  { name: '夜宵', icon: 'moon', tint: 't8', kw: '夜宵' },
 ] as const
 
 async function load() {
@@ -111,7 +111,7 @@ onMounted(() => {
     </header>
 
     <div class="cat-grid">
-      <div v-for="(c, i) in cats" :key="c.name" class="cat-item tk-rise" :style="{ '--i': i }" @click="router.push('/search')">
+      <div v-for="(c, i) in cats" :key="c.name" class="cat-item tk-rise" :style="{ '--i': i }" @click="router.push({ path: '/search', query: c.kw ? { keyword: c.kw } : {} })">
         <div class="cat-tile" :class="c.tint">
           <FoodIcon :name="c.icon" :size="24" />
         </div>

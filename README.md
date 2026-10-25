@@ -41,6 +41,11 @@ cd web && npm install && web\run-dev.bat
 | `noodle1` | 面面俱到 | 面食 |
 | `fastfood1` | 快意小厨 | 快餐便当 |
 | `sushi1` | 江户寿司 | 寿司日料 |
+| `dessert1` | 甜心甜品屋 | 甜品烘焙 |
+| `bbq1` | 老王烧烤 | 烧烤炸串 |
+| `fruit1` | 鲜果多多 | 水果生鲜 |
+| `breakfast1` | 晨光早点铺 | 早餐粥点 |
+| `supper1` | 深夜食堂 | 夜宵小吃 |
 
 - 骑手：`rider1` / `rider123`
 - 运营端：`platform` / `platform123`（`/admin/`，由 `seed_demo` 生成；四端登录页均有「一键填充演示账号」）
@@ -50,7 +55,7 @@ cd web && npm install && web\run-dev.bat
 ```bat
 cd takeout
 .venv\Scripts\python.exe scripts\fetch_food_images.py   :: 抓取自由许可菜品图（可选，已入库可跳过）
-.venv\Scripts\python.exe manage.py seed_shops           :: 生成 6 家商户与 30 道菜
+.venv\Scripts\python.exe manage.py seed_shops           :: 生成 11 家商户与 40 道菜
 ```
 
 图片来自 Wikimedia Commons / TheMealDB 的 CC 或公有领域素材，来源与许可清单见

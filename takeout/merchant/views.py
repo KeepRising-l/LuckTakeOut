@@ -2,7 +2,7 @@
 
 from django.conf import settings
 from django.core.paginator import Paginator
-from django.db.models import Avg
+from django.db.models import Avg, Q
 from django.views.decorators.http import require_http_methods
 
 from common.response import fail, ok
@@ -34,7 +34,13 @@ def nearby(request):
     keyword = (request.GET.get('keyword') or '').strip()
     qs = MerchantInfo.objects.filter(status=20).annotate(rating_avg=Avg('reviews__rating')).order_by('id')
     if keyword:
-        qs = qs.filter(name__icontains=keyword)
+        # 分类入口/搜索词同时匹配：商户名、所属分类、简介、在售菜品名
+        qs = qs.filter(
+            Q(name__icontains=keyword)
+            | Q(category__name__icontains=keyword)
+            | Q(description__icontains=keyword)
+            | Q(products__name__icontains=keyword)
+        ).distinct()
     try:
         page = int(request.GET.get('page') or 1)
         size = int(request.GET.get('size') or 10)
