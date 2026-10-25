@@ -13,7 +13,7 @@ context: |
                 packages/shared（Vue 3 + Vite + TypeScript + Pinia + Vue Router）。
   - thesis-docs/ 论文文档：02-需求分析.md、03-系统设计.md。
 
-  需求权威源：thesis-docs/02-需求分析.md 是需求的唯一权威（第 2 稿）。
+  需求权威源：thesis-docs/02-需求分析.md 是需求的唯一权威（第 5 稿）。
   openspec/specs 是它的可验证投影，用于驱动实现与验收；需求变更时先改 02，再同步 specs。
   openspec/specs 不进入论文交付物。
 
@@ -25,14 +25,15 @@ context: |
   - 四类角色各自使用独立盐值的签名 token（见 common/auth.py）。
   - 数据库默认 SQLite；设置 DB_ENGINE=mysql 可切换 MySQL 8。
   - 支付为模拟支付；演示环境登录验证码可直接返回。
+  - 退款口径：顾客对本人「已支付/待接单」订单发起全额退款申请 → 商户审核；同意则订单「已退款」
+    且支付记录标记已退款，拒绝则按退款记录退回申请前状态；退款同意不回补库存。
   - 未配置大模型凭据时，AI 走内置规则化兜底实现。
 
-  本期不包含：退款；菜品规格与 SKU（菜品可交易属性为价格与可售数量）；
+  本期不包含：菜品规格与 SKU（菜品可交易属性为价格与可售数量）；
   真实支付对接；短信/邮件/APP 推送；优惠券与积分；复杂配送调度（地图导航、路径规划、
   智能派单、实时定位、拼单）；独立的运营端前端界面。
 
-  库存口径：菜品可售数量仅用于下单时的可售校验，本期不实现下单后的自动扣减，
-  数量由商户在商户端维护。
+  库存口径：下单时行锁校验并自动扣减库存，取消订单按明细回补；库存基线由商户在商户端维护。
 
 # 按产物类型的规则（仅在写该产物时生效）。
 rules:
@@ -46,7 +47,7 @@ rules:
     - openspec validate 会对缺少英文 SHALL/MUST 的规格给出提示；该提示针对英文规格，本项目接受该提示，以 validate 通过为准，不使用 --strict。
     - 每个 requirement 至少配一个 WHEN/THEN 形式的场景。
     - main specs 只描述已生效的能力；已承诺但代码未达标的能力不得写入基线，应留给后续 change 的增量。
-    - capability 路径按端划分，例如 customer-ordering、merchant-catalog、rider-delivery、platform-ops、ai-ordering-assistant。
+    - capability 路径按端划分，例如 customer-ordering、merchant-console、rider-delivery、platform-ops、ai-ordering-assistant。
   design:
     - 用中文书写。
     - 说明技术决策、被否决的替代方案及理由；涉及状态、数据结构与接口契约时给出明确口径。

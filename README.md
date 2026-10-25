@@ -49,7 +49,7 @@ cd web && npm install && web\run-dev.bat
 ```bat
 cd takeout
 .venv\Scripts\python.exe scripts\fetch_food_images.py   :: 抓取自由许可菜品图（可选，已入库可跳过）
-.venv\Scripts\python.exe manage.py seed_shops           :: 生成 6 家商户与 28 道菜
+.venv\Scripts\python.exe manage.py seed_shops           :: 生成 6 家商户与 30 道菜
 ```
 
 图片来自 Wikimedia Commons / TheMealDB 的 CC 或公有领域素材，来源与许可清单见
@@ -71,7 +71,7 @@ cd takeout
 - 安全：`SECRET_KEY`/`DEBUG`/`ALLOWED_HOSTS` 支持环境变量注入（`DJANGO_SECRET_KEY`/`DJANGO_DEBUG=0`/`DJANGO_ALLOWED_HOSTS`），生产模式未配密钥拒绝启动
 
 ## 演示链路
-顾客点菜下单 → 模拟支付 → 商户接单 → 骑手抢单配送 → 顾客评价 →（AI 客服对话式下单）
+顾客点菜下单 → 模拟支付 → 商户接单 → 骑手抢单配送 → 顾客评价 → 退款申请/商户审核（模拟到账）→（AI 客服对话式下单）
 
 ## AI 个性化点餐
 
@@ -100,4 +100,4 @@ create_draft / get_order_status / urge_order / submit_review）。
 | 项目使用文档（四端操作 + 演示脚本） | `thesis-docs/07-项目使用文档.md` |
 | 部署与数据库说明（换机运行 / 数据库脚本） | `thesis-docs/08-部署与数据库说明.md` |
 | 数据库快照与恢复脚本 | `thesis-docs/db/` |
-| 工程规格（47 条可验收要求） | `openspec/specs/` |
+| 工程规格（50 条可验收要求） | `openspec/specs/` |
