@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { showConfirmDialog, showSuccessToast, showToast } from 'vant'
 import TabBar from '@/components/TabBar.vue'
 import FoodIcon from '@/components/FoodIcon.vue'
+import AiChatPanel from '@/components/AiChatPanel.vue'
 import { aiApi, merchantApi, money, orderApi, pickImage } from '@/api'
 import type { RecommendedDish, TasteProfile } from '@/api'
 import { useAuthStore } from '@/stores/auth'
@@ -14,6 +15,9 @@ const auth = useAuthStore()
 const keyword = ref('')
 const loading = ref(false)
 const merchants = ref<Awaited<ReturnType<typeof merchantApi.nearby>>>([])
+
+/** AI 半屏对话面板：从底部展开，停留在本页 */
+const showAi = ref(false)
 
 /** 猜你想吃：口味画像 + 推荐菜品（无历史时后端返回冷启动结果） */
 const taste = ref<{ profile: TasteProfile; dishes: RecommendedDish[] } | null>(null)
@@ -185,6 +189,15 @@ onMounted(() => {
         <van-button round size="small" type="primary" plain @click="load">刷新试试</van-button>
       </van-empty>
     </van-list>
+
+    <!-- AI 悬浮入口：点击从底部展开半屏对话面板，停留在本页 -->
+    <div v-if="!showAi" class="ai-fab" @click="showAi = true">
+      <van-icon name="chat-o" />
+      <span>AI</span>
+    </div>
+    <van-popup v-model:show="showAi" position="bottom" round :style="{ height: '52vh' }">
+      <AiChatPanel closable @close="showAi = false" />
+    </van-popup>
 
     <TabBar />
   </div>
@@ -458,5 +471,34 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ---------- AI 悬浮入口 ---------- */
+.ai-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(140deg, #ff8a3d 0%, #ff6f1c 60%, #f2570a 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  box-shadow: var(--shadow-brand);
+  z-index: 10;
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+.ai-fab:active {
+  transform: scale(0.88);
+}
+.ai-fab .van-icon {
+  font-size: 21px;
 }
 </style>
