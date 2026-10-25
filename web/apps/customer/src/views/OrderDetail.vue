@@ -13,6 +13,9 @@ const showReview = ref(false)
 const rating = ref(5)
 const content = ref('')
 const submitting = ref(false)
+const showRefund = ref(false)
+const refundReason = ref('')
+const refunding = ref(false)
 
 const orderId = String(route.params.id)
 
@@ -26,6 +29,9 @@ const stepIndex = computed(() => {
   if (s === 50) return 4
   return -1
 })
+
+/** 已支付/待接单可申请退款 */
+const canApplyRefund = computed(() => [20, 30].includes(order.value?.status ?? 0))
 
 async function load() {
   showLoadingToast({ message: '加载中...', forbidClick: true, duration: 0 })
@@ -52,6 +58,22 @@ async function cancel() {
 
 async function pay() {
   router.push(`/payment/${orderId}`)
+}
+
+async function submitRefund() {
+  if (!refundReason.value.trim()) return showToast('请填写退款原因')
+  refunding.value = true
+  try {
+    await orderApi.refundApply(orderId, refundReason.value.trim())
+    showToast('退款申请已提交，等待商家审核')
+    showRefund.value = false
+    refundReason.value = ''
+    load()
+  } catch (e) {
+    showToast((e as Error).message)
+  } finally {
+    refunding.value = false
+  }
 }
 
 async function submitReview() {
@@ -81,6 +103,12 @@ onMounted(load)
         <template v-if="order.status === 60">
           <div class="status-big cancel"><van-icon name="close" /> 已取消</div>
         </template>
+        <template v-else-if="order.status === 70">
+          <div class="status-big refunding"><van-icon name="clock-o" /> 退款审核中</div>
+        </template>
+        <template v-else-if="order.status === 80">
+          <div class="status-big refunded"><van-icon name="passed" /> 已退款</div>
+        </template>
         <template v-else>
           <van-steps :active="stepIndex" active-color="var(--brand-500)" inactive-color="var(--hairline-strong)">
             <van-step>提交订单</van-step>
@@ -91,6 +119,12 @@ onMounted(load)
           </van-steps>
         </template>
         <div class="status-text">{{ ORDER_STATUS[order.status] || order.status }} · {{ datetime(order.createTime) }}</div>
+      </div>
+
+      <!-- 退款被拒提示 -->
+      <div class="refund-notice" v-if="order.refundStatus === 30">
+        <van-icon name="warning-o" />
+        <span>上一次退款申请被商家拒绝{{ order.refundRemark ? `：${order.refundRemark}` : '' }}</span>
       </div>
 
       <!-- 地址 -->
@@ -125,10 +159,29 @@ onMounted(load)
       <div class="action-bar">
         <van-button v-if="order.status === 10" plain round type="danger" @click="cancel">取消订单</van-button>
         <van-button v-if="order.status === 10" round type="primary" @click="pay">去支付</van-button>
+        <van-button v-if="canApplyRefund" plain round type="danger" @click="showRefund = true">申请退款</van-button>
         <van-button v-if="order.status === 50" round type="primary" @click="showReview = true">评价订单</van-button>
       </div>
     </template>
     <van-empty v-else description="订单不存在" />
+
+    <!-- 申请退款 -->
+    <van-popup v-model:show="showRefund" position="bottom" round>
+      <div class="review-panel">
+        <div class="rv-title serif">申请退款</div>
+        <p class="refund-amount">退款金额：<span class="tk-price">¥{{ money(order?.actualAmount ?? 0) }}</span>（全额）</p>
+        <van-field
+          v-model="refundReason"
+          type="textarea"
+          rows="3"
+          maxlength="200"
+          show-word-limit
+          placeholder="请填写退款原因，方便商家处理"
+          class="rv-field"
+        />
+        <van-button type="danger" block round :loading="refunding" @click="submitRefund">提交申请</van-button>
+      </div>
+    </van-popup>
 
     <van-popup v-model:show="showReview" position="bottom" round>
       <div class="review-panel">
@@ -180,6 +233,28 @@ onMounted(load)
   font-size: var(--text-sm);
   color: var(--ink-3);
   margin-top: 10px;
+}
+.status-big.refunding {
+  color: var(--brand-600);
+}
+.status-big.refunded {
+  color: var(--ink-2);
+}
+.refund-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 var(--gutter) 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-brand-soft, #fff4ec);
+  color: var(--brand-600);
+  font-size: var(--text-sm);
+}
+.refund-amount {
+  font-size: var(--text-md);
+  color: var(--ink-2);
+  margin-bottom: 4px;
 }
 .addr-panel {
   display: flex;

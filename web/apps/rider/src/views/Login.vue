@@ -11,6 +11,9 @@ const username = ref('')
 const password = ref('')
 const submitting = ref(false)
 
+// 测试账号入口只在开发构建展示，生产构建不暴露演示凭据
+const isDev = import.meta.env.DEV
+
 function fillTest() {
   username.value = 'rider1'
   password.value = 'rider123'
@@ -69,7 +72,7 @@ async function submit() {
           <van-button round block type="primary" :loading="submitting" @click="submit">
             登 录
           </van-button>
-          <van-button round block plain size="small" class="test-btn" @click="fillTest">
+          <van-button v-if="isDev" round block plain size="small" class="test-btn" @click="fillTest">
             一键填入测试账号
           </van-button>
         </div>

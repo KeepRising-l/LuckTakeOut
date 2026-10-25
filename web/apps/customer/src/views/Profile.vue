@@ -20,7 +20,7 @@ const cells = [
 async function logout() {
   await showConfirmDialog({ title: '提示', message: '确定退出登录吗？' })
   auth.logout()
-  cart.carts = []
+  cart.clearAll()
   showToast('已退出登录')
   router.replace('/login')
 }

@@ -12,6 +12,9 @@ const formRef = ref<FormInstance>()
 const loading = ref(false)
 const form = reactive({ username: '', password: '' })
 
+// 测试账号入口只在开发构建展示，生产构建不暴露演示凭据
+const isDev = import.meta.env.DEV
+
 const rules: FormRules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
@@ -60,7 +63,7 @@ async function submit() {
           <el-input v-model="form.password" type="password" show-password placeholder="密码" />
         </el-form-item>
         <el-button type="primary" class="login-btn" :loading="loading" @click="submit">登 录</el-button>
-        <el-button class="test-btn" text @click="fillTest">测试账号 merchant1 / merchant123</el-button>
+        <el-button v-if="isDev" class="test-btn" text @click="fillTest">测试账号 merchant1 / merchant123</el-button>
       </el-form>
       <div class="login-foot">
         还没有账号？<router-link to="/register">商家入驻</router-link>

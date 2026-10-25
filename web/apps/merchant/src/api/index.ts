@@ -130,6 +130,10 @@ export interface Order {
   paymentMethod: string
   remark: string
   status: OrderStatus
+  /** 最近一笔退款申请：10 待审核 / 20 已同意 / 30 已拒绝，无申请时为 null */
+  refundStatus?: number | null
+  refundReason?: string
+  refundRemark?: string
   createTime: string
 }
 export interface OrderPage extends PageData<Order> {
@@ -141,6 +145,9 @@ export const fetchOrder = (id: number) => http.get<never, Order>(`/order/${id}`)
 export const acceptOrder = (id: number) =>
   http.put<never, Order>(`/order/${id}/status`, { status: 30 })
 export const cancelOrder = (id: number) => http.put<never, Order>(`/order/${id}/cancel`)
+/** 退款审核：approve=true 模拟退款到账（订单→已退款），false 拒绝（订单退回申请前状态） */
+export const reviewRefund = (id: number, approve: boolean, remark: string) =>
+  http.put<never, Order>(`/order/${id}/refund/review`, { approve, remark })
 
 /** 商户端状态文案：取值与三端一致，30 按商户视角呈现为「已接单，待骑手取餐」 */
 export const ORDER_STATUS_TEXT: Record<number, string> = {
@@ -154,6 +161,8 @@ export const ORDER_STATUS_TAG: Record<number, string> = {
   40: 'warning',
   50: 'success',
   60: 'info',
+  70: 'danger',
+  80: 'info',
 }
 
 // ---- 统计 ----

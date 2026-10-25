@@ -96,6 +96,11 @@ export const useCartStore = defineStore('cart', {
       this.carts = this.carts.filter((m) => m.merchantId !== merchantId)
       save(this.carts)
     },
+    /** 清空全部购物车并写回本地存储（退出登录时调用，防串号/复活） */
+    clearAll() {
+      this.carts = []
+      save(this.carts)
+    },
     quantityOf(merchantId: number, productId: number): number {
       return this.merchantCart(merchantId)?.items.find((i) => i.productId === productId)?.quantity || 0
     },

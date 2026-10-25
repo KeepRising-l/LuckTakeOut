@@ -2,6 +2,7 @@ import type { AxiosInstance } from 'axios'
 import { createRequest, storage } from '@takeout/shared'
 import { money, datetime } from '@takeout/shared'
 import router from '@/router'
+import { useAuthStore } from '@/stores/auth'
 
 export { money, datetime }
 
@@ -10,8 +11,8 @@ export const http: AxiosInstance = createRequest({
   baseURL: '/api/v1',
   getToken: () => storage.get('customerToken'),
   onUnauthorized: () => {
-    storage.remove('customerToken')
-    storage.remove('customerInfo')
+    // 同时清 Pinia 内存态与本地存储，避免 isLogin 残留
+    useAuthStore().logout()
     router.push('/login')
   },
 })
@@ -99,6 +100,10 @@ export interface Order {
   address: string
   remark: string
   createTime: string
+  /** 最近一笔退款申请：10 待审核 / 20 已同意 / 30 已拒绝，无申请时为 null */
+  refundStatus?: number | null
+  refundReason?: string
+  refundRemark?: string
   items: OrderItem[]
 }
 
@@ -165,6 +170,8 @@ export const orderApi = {
   detail: (id: number | string) => http.get<never, Order>(`/orders/${id}`),
   pay: (id: number | string) => http.post(`/orders/${id}/pay`),
   cancel: (id: number | string) => http.post(`/orders/${id}/cancel`),
+  refundApply: (id: number | string, reason: string) =>
+    http.post<never, { refundId: number; refundAmount: number }>(`/orders/${id}/refund`, { reason }),
   review: (id: number | string, data: { rating: number; content: string }) =>
     http.post(`/orders/${id}/review`, data),
 }

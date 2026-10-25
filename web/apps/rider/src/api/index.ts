@@ -72,7 +72,7 @@ export const api = {
   getRider: (riderId: number | string) =>
     http.get<unknown, RiderDetail>(`/delivery/riders/${riderId}`),
   setStatus: (riderId: number | string, workStatus: number) =>
-    http.post<unknown, unknown>(`/delivery/riders/${riderId}/status?workStatus=${workStatus}`),
+    http.post<unknown, unknown>(`/delivery/riders/${riderId}/status`, { workStatus }),
   getTasks: (riderId: number | string) =>
     http.get<unknown, TaskPage>(`/delivery/riders/${riderId}/tasks`),
   getPending: () => http.get<unknown, TaskPage>('/delivery/tasks/pending'),

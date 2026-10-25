@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  fetchOrders, fetchOrder, acceptOrder, cancelOrder,
+  fetchOrders, fetchOrder, acceptOrder, cancelOrder, reviewRefund,
   ORDER_STATUS_TEXT, ORDER_STATUS_TAG,
   type Order, type OrderStatus,
 } from '@/api'
@@ -15,6 +15,7 @@ const tabs: { label: string; value: '' | OrderStatus }[] = [
   { label: '待接单', value: 30 },
   { label: '配送中', value: 40 },
   { label: '已完成', value: 50 },
+  { label: '退款审核', value: 70 },
   { label: '已取消', value: 60 },
 ]
 
@@ -85,6 +86,33 @@ async function onCancel(row: Order) {
   }
 }
 
+async function onRefundReview(row: Order, approve: boolean, remark = '') {
+  await ElMessageBox.confirm(
+    `顾客申请退款：${row.refundReason || '未填写原因'}。确认${approve ? '同意并模拟退款到账' : '拒绝该申请'}吗？`,
+    approve ? '同意退款' : '拒绝退款',
+    { type: 'warning' },
+  )
+  try {
+    const updated = await reviewRefund(row.id, approve, remark)
+    ElMessage.success(approve ? '已同意退款（模拟到账）' : '已拒绝退款申请')
+    drawer.value = false
+    detail.value = null
+    load()
+    return updated
+  } catch (e) {
+    ElMessage.error((e as Error).message)
+  }
+}
+
+async function onRejectRefund(row: Order) {
+  const { value } = await ElMessageBox.prompt('请填写拒绝原因（可选）', '拒绝退款', {
+    inputPlaceholder: '如：已出餐，不便退款',
+    inputValue: '',
+  }).catch(() => ({ value: null }))
+  if (value === null) return
+  await onRefundReview(row, false, value || '')
+}
+
 const canCancel = (s: number) => [10, 20, 30].includes(s)
 
 onMounted(load)
@@ -112,10 +140,12 @@ onMounted(load)
         <el-table-column label="下单时间" width="170">
           <template #default="{ row }">{{ datetime(row.createTime) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="290" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openDetail(row)">详情</el-button>
             <el-button v-if="row.status === 20" link type="primary" @click="onAccept(row)">接单</el-button>
+            <el-button v-if="row.status === 70" link type="warning" @click="onRefundReview(row, true)">同意退款</el-button>
+            <el-button v-if="row.status === 70" link type="danger" @click="onRejectRefund(row)">拒绝</el-button>
             <el-button v-if="canCancel(row.status)" link type="danger" @click="onCancel(row)">取消</el-button>
           </template>
         </el-table-column>
@@ -144,8 +174,24 @@ onMounted(load)
           <el-descriptions-item label="顾客">{{ detail.customerName }} {{ detail.customerPhone }}</el-descriptions-item>
           <el-descriptions-item label="配送地址">{{ detail.deliveryAddress }}</el-descriptions-item>
           <el-descriptions-item label="备注">{{ detail.remark || '无' }}</el-descriptions-item>
+          <el-descriptions-item v-if="detail.refundReason" label="退款原因">
+            {{ detail.refundReason }}
+            <el-tag
+              v-if="detail.refundStatus != null && detail.refundStatus !== 10"
+              :type="detail.refundStatus === 20 ? 'success' : 'danger'"
+              size="small"
+              class="refund-tag"
+            >
+              {{ detail.refundStatus === 20 ? '已同意' : '已拒绝' }}
+            </el-tag>
+          </el-descriptions-item>
           <el-descriptions-item label="支付方式">{{ detail.paymentMethod || '-' }}</el-descriptions-item>
         </el-descriptions>
+
+        <div v-if="detail.status === 70" class="refund-actions">
+          <el-button type="warning" @click="onRefundReview(detail, true)">同意退款</el-button>
+          <el-button type="danger" plain @click="onRejectRefund(detail)">拒绝退款</el-button>
+        </div>
 
         <h4 class="items-title">商品清单</h4>
         <el-table :data="detail.items" size="small">
@@ -169,4 +215,6 @@ onMounted(load)
 .items-title { margin: 18px 0 8px; }
 .total-line { text-align: right; margin-top: 12px; color: var(--ink-2); }
 .total-amount { color: var(--brand-600); font-size: 18px; font-weight: 700; }
+.refund-tag { margin-left: 6px; }
+.refund-actions { margin-top: 16px; display: flex; gap: 10px; }
 </style>
