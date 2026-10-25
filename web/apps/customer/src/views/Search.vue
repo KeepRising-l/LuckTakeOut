@@ -57,7 +57,7 @@ onMounted(() => {
     <div v-if="!searched" class="hot">
       <div class="hot-title">热门搜索</div>
       <div class="hot-tags">
-        <van-tag v-for="k in ['川菜', '奶茶', '套餐', '烧烤', '水果', '甜品']" :key="k" round size="large" class="hot-tag" @click="onSearch(k)">{{ k }}</van-tag>
+        <van-tag v-for="k in ['炒菜', '奶茶', '套餐', '烧烤', '水果', '甜品']" :key="k" round size="large" class="hot-tag" @click="onSearch(k)">{{ k }}</van-tag>
       </div>
     </div>
 

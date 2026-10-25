@@ -1,4 +1,4 @@
-"""生成多品类商家与菜品（咖啡/奶茶/面条/快餐/寿司）。
+"""生成多品类商家与菜品（炒菜/奶茶/面条/快餐/寿司/甜品等）。
 
 前置：先跑 scripts/fetch_food_images.py 准备图片，否则菜品图留空走占位图标。
 
@@ -20,7 +20,7 @@ from product.models import ProductCategory, ProductInfo
 # (账号, 商户名, 商户分类, 门店图, 电话, 地址, 简介, 营业时间)
 SHOPS = [
     (
-        'merchant1', '川香小馆', '川菜', 'sichuan',
+        'merchant1', '川香小馆', '炒菜', 'sichuan',
         '13800000001', '示例路1号', '地道川味，麻辣鲜香',
         (time(10, 0), time(21, 0)),
     ),

@@ -35,7 +35,7 @@ cd web && npm install && web\run-dev.bat
 
 | 账号 | 店铺 | 品类 |
 | --- | --- | --- |
-| `merchant1` | 川香小馆 | 川菜 |
+| `merchant1` | 川香小馆 | 炒菜 |
 | `merchant2` | 快乐奶茶 | 奶茶饮品 |
 | `coffee1` | 晨光咖啡 | 咖啡烘焙 |
 | `noodle1` | 面面俱到 | 面食 |

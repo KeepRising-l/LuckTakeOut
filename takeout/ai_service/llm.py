@@ -226,7 +226,7 @@ def _mock_completion(messages):
 
 
 def _guess_keyword(text):
-    for kw in ('川香', '快乐奶茶', '奶茶', '川菜', '咖啡', '面', '寿司', '快餐',
+    for kw in ('川香', '快乐奶茶', '奶茶', '炒菜', '咖啡', '面', '寿司', '快餐',
                '小馆', '湘菜', '汉堡', '炸鸡'):
         if kw in text:
             return kw

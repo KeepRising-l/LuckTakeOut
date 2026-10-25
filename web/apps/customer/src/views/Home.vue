@@ -23,9 +23,9 @@ const showAi = ref(false)
 const taste = ref<{ profile: TasteProfile; dishes: RecommendedDish[] } | null>(null)
 const reordering = ref(false)
 
-/** 分类入口：餐饮语义线性图标（FoodIcon）+ 暖色圆底 tint；kw 为搜索过滤词，空串展示全部 */
+/** 分类入口：餐饮语义线性图标（FoodIcon）+ 暖色圆底 tint；kw 为搜索过滤词 */
 const cats = [
-  { name: '美食', icon: 'noodle', tint: 't1', kw: '' },
+  { name: '炒菜', icon: 'noodle', tint: 't1', kw: '炒菜' },
   { name: '奶茶', icon: 'milkTea', tint: 't2', kw: '奶茶' },
   { name: '快餐', icon: 'burger', tint: 't3', kw: '快餐' },
   { name: '烧烤', icon: 'skewer', tint: 't4', kw: '烧烤' },
