@@ -74,6 +74,7 @@ class OrderDraft(BaseModel):
         related_name='drafts', verbose_name='收货地址',
     )
     total_amount = models.DecimalField('草稿金额', max_digits=10, decimal_places=2, default=0)
+    remark = models.CharField('订单备注', max_length=255, blank=True, default='')
     status = models.SmallIntegerField('状态', choices=STATUS_CHOICES, default=STATUS_PENDING)
     order = models.OneToOneField(
         'order.OrderInfo', on_delete=models.SET_NULL, null=True, blank=True,

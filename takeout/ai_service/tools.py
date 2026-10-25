@@ -64,6 +64,7 @@ TOOL_SCHEMAS = [
         'merchant_id': {'type': 'integer'},
         'items': {'type': 'array', 'items': {'type': 'object'}},
         'address_id': {'type': 'integer'},
+        'remark': {'type': 'string', 'description': '订单备注，如「不要香菜」「多加醋」'},
     }, ['merchant_id', 'items']),
     _fn('get_order_status', '查询订单当前状态与骑手', {'order_id': {'type': 'integer'}}),
     _fn('urge_order', '对该订单发起催单（通知商户/骑手）', {
@@ -186,6 +187,7 @@ def t_create_draft(session, args):
     draft = OrderDraft.objects.create(
         session=session, customer=session.customer, merchant=merchant,
         address=address, total_amount=total, status=OrderDraft.STATUS_PENDING,
+        remark=(args.get('remark') or '').strip()[:255],
     )
     for p, qty in resolved:
         OrderDraftItem.objects.create(
@@ -196,6 +198,7 @@ def t_create_draft(session, args):
         'merchantName': merchant.name,
         'total': float(total),
         'address': (address.detail if address else ''),
+        'remark': draft.remark,
         'items': [{'name': p.name, 'quantity': q, 'price': float(p.price)} for p, q in resolved],
     }
     _audit(session, 'create_draft', 'order_draft', draft.id, json.dumps(result, ensure_ascii=False))

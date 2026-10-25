@@ -145,7 +145,7 @@ def draft_confirm(request, pk):
             delivery_fee=delivery_fee,
             pay_amount=pay_amount,
             status=OrderInfo.STATUS_PENDING_PAY,
-            remark='AI 点餐助手代下单',
+            remark=d.remark or 'AI 点餐助手代下单',
         )
         for p, qty in resolved:
             OrderItem.objects.create(

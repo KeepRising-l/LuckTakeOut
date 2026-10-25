@@ -183,6 +183,24 @@ class AiToolGuardTest(TestCase):
         )
         self.assertIn('数量非法', resp.json()['info'])
 
+    def test_create_draft_carries_remark_to_order(self):
+        """对话中的备注经 create_draft 落到草稿，确认后写入正式订单。"""
+        result = execute_tool('create_draft', {
+            'merchant_id': self.merchant.id,
+            'items': [{'product_id': self.p_ok.id, 'quantity': 1}],
+            'remark': '多加醋，不要香菜',
+        }, self.session)
+        draft = OrderDraft.objects.get(id=result['draftId'])
+        self.assertEqual(draft.remark, '多加醋，不要香菜')
+        resp = self.client.post(
+            f'/api/v1/ai/drafts/{draft.id}/confirm', data='{}',
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {make_token(self.auth_user)}',
+        )
+        self.assertEqual(resp.json()['code'], '00000')
+        order = OrderInfo.objects.get(order_no=resp.json()['data']['orderNo'])
+        self.assertEqual(order.remark, '多加醋，不要香菜')
+
     def test_submit_review_clamps_rating_and_rejects_duplicate(self):
         order = OrderInfo.objects.create(
             order_no='AIGUARD01', user=self.customer, merchant=self.merchant,

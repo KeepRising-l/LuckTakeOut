@@ -40,7 +40,7 @@ def chat_completion(messages, tools=None):
         method='POST',
     )
     try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        with urllib.request.urlopen(req, timeout=120) as resp:
             data = json.loads(resp.read().decode('utf-8'))
     except Exception as e:  # noqa: BLE001
         # 欠费/断网/限流/密钥失效时降级到内置规则 Mock，保证演示与联调不中断
