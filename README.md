@@ -84,8 +84,8 @@ cd takeout
 | 断网兜底 | 自动 | LLM 密钥失效/断网时降级为内置规则 Mock，推荐与下单链路仍可演示 |
 
 接口：`GET /api/v1/ai/recommend`（画像 + 推荐）、`POST /api/v1/ai/reorder`（复购草稿）；
-工具：`get_my_history`、`recommend_dishes`（另有 search_merchant / search_menu / validate_draft /
-create_draft / get_order_status / urge_order / submit_review）。
+工具：`get_my_history`、`recommend_dishes`、`apply_refund`（另有 search_merchant / search_menu /
+validate_draft / create_draft / get_order_status / urge_order / submit_review）。
 
 ## 文档导航
 
@@ -100,4 +100,4 @@ create_draft / get_order_status / urge_order / submit_review）。
 | 项目使用文档（四端操作 + 演示脚本） | `thesis-docs/07-项目使用文档.md` |
 | 部署与数据库说明（换机运行 / 数据库脚本） | `thesis-docs/08-部署与数据库说明.md` |
 | 数据库快照与恢复脚本 | `thesis-docs/db/` |
-| 工程规格（50 条可验收要求） | `openspec/specs/` |
+| 工程规格（51 条可验收要求） | `openspec/specs/` |

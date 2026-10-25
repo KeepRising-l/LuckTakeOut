@@ -14,6 +14,7 @@ from django.test import TestCase
 from common.auth import make_token
 from merchant.models import MerchantInfo
 from order.models import OrderInfo, OrderItem
+from payment.models import RefundRecord
 from platform_ops.models import OperationLog
 from product.models import ProductInfo
 from review.models import Review
@@ -215,6 +216,59 @@ class AiToolGuardTest(TestCase):
         self.assertFalse(second['ok'])
         self.assertIn('已评价过', second['message'])
         self.assertEqual(Review.objects.filter(order=order).count(), 1)
+
+
+class AiRefundToolTest(TestCase):
+    """AI 工具申请退款：状态校验、重复拦截与人工路径同口径。"""
+
+    def setUp(self):
+        self.auth_user, self.customer = make_customer('ai_ref', '退款顾客', '13800000031')
+        self.session = ChatSession.objects.create(customer=self.customer, status=10)
+        self.merchant = make_merchant('ai_ref_shop', '退款商户')
+        self.order = OrderInfo.objects.create(
+            order_no='AIREFUND01', user=self.customer, merchant=self.merchant,
+            address_snapshot='测试地址', total_amount=10, delivery_fee=Decimal('2.00'),
+            pay_amount=12, status=OrderInfo.STATUS_PAID,
+        )
+
+    def test_apply_refund_success(self):
+        result = execute_tool(
+            'apply_refund', {'order_id': self.order.id, 'reason': '不想要了'}, self.session,
+        )
+        self.assertTrue(result['ok'])
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, OrderInfo.STATUS_REFUNDING)
+        refund = self.order.refunds.latest('id')
+        self.assertEqual(refund.status, RefundRecord.STATUS_PENDING)
+        self.assertEqual(refund.reason, '不想要了')
+        self.assertEqual(refund.from_status, OrderInfo.STATUS_PAID)
+
+    def test_apply_refund_rejects_unrefundable_status(self):
+        self.order.status = OrderInfo.STATUS_FINISHED
+        self.order.save()
+        result = execute_tool('apply_refund', {'order_id': self.order.id}, self.session)
+        self.assertFalse(result['ok'])
+        self.assertIn('不支持申请退款', result['message'])
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, OrderInfo.STATUS_FINISHED)
+
+    def test_apply_refund_duplicate_pending_rejected(self):
+        execute_tool('apply_refund', {'order_id': self.order.id}, self.session)
+        result = execute_tool('apply_refund', {'order_id': self.order.id}, self.session)
+        self.assertFalse(result['ok'])
+        self.assertIn('已有退款申请待审核', result['message'])
+        self.assertEqual(self.order.refunds.count(), 1)
+
+    def test_apply_refund_other_customers_order_rejected(self):
+        other_info = UserInfo.objects.create(
+            auth_user=User.objects.create_user(username='ai_ref_c2', password='pw123456'),
+            nickname='别人', phone='13800000032',
+        )
+        other_session = ChatSession.objects.create(customer=other_info, status=10)
+        result = execute_tool('apply_refund', {'order_id': self.order.id}, other_session)
+        self.assertIn('没有找到订单', result.get('error', ''))
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, OrderInfo.STATUS_PAID)
 
 
 class RecommendTest(TestCase):

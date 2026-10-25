@@ -12,12 +12,12 @@ from common.auth import api_login_required
 from common.response import fail, ok
 from common.utils import get_json
 from merchant.models import MerchantInfo
-from payment.models import PaymentRecord, RefundRecord
+from payment.models import PaymentRecord
 from product.models import ProductInfo
 from user.models import UserAddress, UserInfo
 
 from .models import OrderInfo, OrderItem, OrderStatusLog
-from .services import restore_stock
+from .services import apply_refund_for_order, restore_stock
 from .state import change_status
 
 
@@ -235,38 +235,21 @@ def order_refund_apply(request, pk):
     """顾客申请退款：已支付/待接单的订单进入「退款中」，留存退款记录待商户审核。
 
     金额为实付全额（模拟退款），拒绝时按记录里的原状态退回。
+    校验逻辑与 AI 工具共用 apply_refund_for_order。
     """
     user_info = UserInfo.objects.filter(auth_user=request.user).first()
     if not user_info:
         return fail('用户不存在', status=401)
 
     data = get_json(request)
-    with transaction.atomic():
-        # 行锁防止并发重复申请绕过「待审核唯一」检查
-        o = OrderInfo.objects.select_for_update().filter(id=pk, user=user_info).first()
-        if not o:
-            return fail('订单不存在')
-        if o.refunds.filter(status=RefundRecord.STATUS_PENDING).exists():
-            return fail('已有退款申请待审核，请耐心等待')
-        if o.status not in (OrderInfo.STATUS_PAID, OrderInfo.STATUS_PENDING_ACCEPT):
-            return fail('当前订单状态不支持申请退款')
-
-        from_status = o.status
-        changed, message = change_status(
-            o, OrderInfo.STATUS_REFUNDING, operator_role='customer', operator_id=user_info.id,
-        )
-        if not changed:
-            return fail(message)
-        refund = RefundRecord.objects.create(
-            order=o,
-            amount=o.pay_amount,
-            reason=(data.get('reason') or '').strip()[:255],
-            status=RefundRecord.STATUS_PENDING,
-            from_status=from_status,
-        )
+    ok_flag, message, refund = apply_refund_for_order(
+        pk, user_info, data.get('reason') or '', operator_role='customer',
+    )
+    if not ok_flag:
+        return fail(message)
     return ok({
-        'id': o.id,
-        'status': o.status,
+        'id': pk,
+        'status': OrderInfo.STATUS_REFUNDING,
         'refundId': refund.id,
         'refundAmount': float(refund.amount),
-    }, info='退款申请已提交，等待商家审核')
+    }, info=message)

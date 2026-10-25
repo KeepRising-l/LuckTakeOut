@@ -2,8 +2,9 @@
 import { nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
+import { storage } from '@takeout/shared'
 import { aiApi, money, orderApi } from '@/api'
-import type { AiDraft, AiSession } from '@/api'
+import type { AiDraft } from '@/api'
 
 /** AI 对话面板：首页半屏弹层与 /ai 页共用；closable 时带标题栏与关闭按钮 */
 defineProps<{ closable?: boolean }>()
@@ -23,10 +24,28 @@ interface Msg {
 const messages = ref<Msg[]>([
   { role: 'ai', text: '您好，我是 AI 点餐助手～可以直接告诉我想吃什么，比如「来一份川香小馆的招牌套餐」，我帮您下单。' },
 ])
+/** 最近会话恢复：24h 内复用上次会话（误关面板/刷新不丢上下文），过期或失效自动新建 */
+const SESSION_KEY = 'customerAiSession'
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000
+
+/** 面板内只依赖 sessionId；恢复的旧会话仅有 id，其余字段用不到 */
+type ActiveSession = { sessionId: string }
+
+function loadStoredSession(): ActiveSession | undefined {
+  const raw = storage.getJSON<{ id: string; ts: number }>(SESSION_KEY)
+  if (raw && Date.now() - raw.ts < SESSION_TTL_MS) return { sessionId: raw.id }
+  storage.remove(SESSION_KEY)
+  return undefined
+}
+
+function touchStoredSession(id: string) {
+  storage.setJSON(SESSION_KEY, { id, ts: Date.now() })
+}
+
 const input = ref('')
 const sending = ref(false)
 const thinkingSeconds = ref(0)
-const session = ref<AiSession>()
+const session = ref<ActiveSession | undefined>(loadStoredSession())
 const listRef = ref<HTMLElement>()
 
 /** 待发送消息缓冲：短暂停顿后合并为一条发送，处理中发消息不阻塞 */
@@ -34,10 +53,13 @@ const outbox = ref<string[]>([])
 let flushTimer: ReturnType<typeof setTimeout> | undefined
 const MERGE_WAIT_MS = 1800
 
-async function ensureSession() {
+async function ensureSession(): Promise<ActiveSession> {
   if (session.value) return session.value
-  session.value = await aiApi.createSession()
-  return session.value
+  const created = await aiApi.createSession()
+  const s = { sessionId: created.sessionId }
+  session.value = s
+  touchStoredSession(s.sessionId)
+  return s
 }
 
 function scrollBottom() {
@@ -82,8 +104,19 @@ async function flushOutbox() {
   const timer = setInterval(() => { thinkingSeconds.value += 1 }, 1000)
   try {
     const s = await ensureSession()
-    const { reply, draft } = await aiApi.chat(s.sessionId, text)
-    messages.value.push({ role: 'ai', text: reply, draft })
+    let replyData: { reply: string; draft?: AiDraft | null }
+    try {
+      replyData = await aiApi.chat(s.sessionId, text)
+    } catch (e) {
+      if (!(((e as Error).message || '').includes('会话不存在'))) throw e
+      // 恢复的会话已失效（服务端无此会话）：清掉重建重试一次
+      session.value = undefined
+      storage.remove(SESSION_KEY)
+      const fresh = await ensureSession()
+      replyData = await aiApi.chat(fresh.sessionId, text)
+    }
+    touchStoredSession(s.sessionId)
+    messages.value.push({ role: 'ai', text: replyData.reply, draft: replyData.draft ?? undefined })
   } catch (e) {
     messages.value.push({ role: 'ai', text: `出错了：${(e as Error).message}` })
   } finally {

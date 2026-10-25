@@ -11,6 +11,7 @@ from django.db.models import Q
 
 from merchant.models import MerchantInfo
 from order.models import OrderInfo, OrderStatusLog, UrgeRecord
+from order.services import apply_refund_for_order
 from platform_ops.models import Notification, OperationLog
 from product.models import ProductInfo
 from review.models import Review
@@ -67,6 +68,10 @@ TOOL_SCHEMAS = [
         'remark': {'type': 'string', 'description': '订单备注，如「不要香菜」「多加醋」'},
     }, ['merchant_id', 'items']),
     _fn('get_order_status', '查询订单当前状态与骑手', {'order_id': {'type': 'integer'}}),
+    _fn('apply_refund', '对本人订单申请全额退款（仅已支付/待接单可申请，提交后由商户审核）', {
+        'order_id': {'type': 'integer', 'description': '订单号，不传或传 0 则用最近一笔订单'},
+        'reason': {'type': 'string', 'description': '退款原因'},
+    }, []),
     _fn('urge_order', '对该订单发起催单（通知商户/骑手）', {
         'order_id': {'type': 'integer'},
         'content': {'type': 'string'},
@@ -218,6 +223,24 @@ def t_get_order_status(session, args):
     return result
 
 
+def t_apply_refund(session, args):
+    """申请退款：与顾客端 HTTP 接口共用同一套状态校验（apply_refund_for_order）。"""
+    o = _resolve_order(session, args.get('order_id'))
+    if not o:
+        return {'error': '没有找到订单'}
+    ok_flag, message, refund = apply_refund_for_order(
+        o.id, session.customer, args.get('reason') or '', operator_role='ai',
+    )
+    _audit(session, 'apply_refund', 'order', o.id,
+           json.dumps(args, ensure_ascii=False), result='success' if ok_flag else 'fail')
+    if not ok_flag:
+        return {'ok': False, 'message': message}
+    return {
+        'ok': True, 'message': message, 'refundId': refund.id,
+        'orderNo': o.order_no, 'amount': float(refund.amount),
+    }
+
+
 def t_urge_order(session, args):
     o = _resolve_order(session, args.get('order_id'))
     if not o:
@@ -281,6 +304,7 @@ DISPATCH = {
     'validate_draft': t_validate_draft,
     'create_draft': t_create_draft,
     'get_order_status': t_get_order_status,
+    'apply_refund': t_apply_refund,
     'urge_order': t_urge_order,
     'submit_review': t_submit_review,
     'get_my_history': t_get_my_history,
