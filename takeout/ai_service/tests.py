@@ -202,6 +202,29 @@ class AiToolGuardTest(TestCase):
         order = OrderInfo.objects.get(order_no=resp.json()['data']['orderNo'])
         self.assertEqual(order.remark, '多加醋，不要香菜')
 
+    def test_confirm_rejects_closed_merchant(self):
+        """AI 草稿确认也必须遵守商家营业状态，不能绕过人工下单的拦截。"""
+        self.merchant.is_open = False
+        self.merchant.save(update_fields=['is_open'])
+        draft = OrderDraft.objects.create(
+            session=self.session, customer=self.customer, merchant=self.merchant,
+            total_amount=Decimal('10'), status=OrderDraft.STATUS_PENDING,
+        )
+        OrderDraftItem.objects.create(
+            draft=draft, product=self.p_ok, quantity=1, price_snapshot=self.p_ok.price,
+        )
+        resp = self.client.post(
+            f'/api/v1/ai/drafts/{draft.id}/confirm', data='{}', content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {make_token(self.auth_user)}',
+        )
+        self.assertNotEqual(resp.json()['code'], '00000')
+        self.assertIn('休息', resp.json()['info'])
+        self.assertEqual(OrderInfo.objects.count(), 0)
+        self.p_ok.refresh_from_db()
+        self.assertEqual(self.p_ok.stock, 5)
+        draft.refresh_from_db()
+        self.assertEqual(draft.status, OrderDraft.STATUS_PENDING)
+
     def test_submit_review_clamps_rating_and_rejects_duplicate(self):
         order = OrderInfo.objects.create(
             order_no='AIGUARD01', user=self.customer, merchant=self.merchant,

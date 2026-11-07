@@ -61,6 +61,21 @@ export interface MerchantCurrent {
   closeTime?: string
 }
 
+// ---- 站内信 ----
+export interface MerchantNotification {
+  id: number
+  title: string
+  content: string
+  /** 10 催单 / 20 系统 / 30 新订单 */
+  type: number
+  isRead: boolean
+  createTime: string
+}
+export const fetchNotifications = () =>
+  http.get<never, { items: MerchantNotification[]; unread: number }>('/notifications')
+export const markNotificationsRead = (payload: { ids?: number[]; all?: boolean }) =>
+  http.post<never, { unread: number }>('/notifications/read', payload)
+
 // ---- 菜品 ----
 export interface Product {
   id: number

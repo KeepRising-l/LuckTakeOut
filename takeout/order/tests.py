@@ -5,17 +5,22 @@
 """
 
 import json
+from datetime import datetime, time, timedelta
+from unittest.mock import patch
 
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.core.management import call_command
+from django.test import TestCase, override_settings
+from django.utils import timezone
 
 from common.auth import make_merchant_token, make_token
 from merchant.models import MerchantInfo
 from payment.models import PaymentRecord, RefundRecord
+from platform_ops.models import Notification
 from product.models import ProductInfo
 from user.models import UserAddress, UserInfo
 
-from .models import OrderInfo
+from .models import OrderInfo, OrderStatusLog
 
 
 def make_customer(username, nickname, phone):
@@ -408,3 +413,283 @@ class MerchantStatusTransitionTest(TestCase):
         order = self._order_with(OrderInfo.STATUS_PAID)
         resp = self._put(order, 999)
         self.assertIn('未知的订单状态', resp.json()['info'])
+
+
+class UnpaidOrderAutoCancelTest(TestCase):
+    """超时未支付订单自动取消：只处理过期的待支付订单，回补库存且可重复执行。"""
+
+    def setUp(self):
+        self.user, self.info = make_customer('uc_a', '顾客A', '13900000061')
+        self.token = make_token(self.user)
+
+        shop_user = User.objects.create_user(username='uc_shop', password='pw123456')
+        self.merchant = MerchantInfo.objects.create(
+            auth_user=shop_user, name='测试商户', status=20,
+        )
+        self.product = ProductInfo.objects.create(
+            merchant=self.merchant, name='测试菜品', price=10, stock=50, status=10,
+        )
+        self.address = UserAddress.objects.create(
+            user=self.info, receiver='顾客A', phone='13900000061', detail='示例路1号',
+        )
+
+    def _create_order(self, quantity=3):
+        resp = self.client.post(
+            '/api/v1/orders',
+            data=json.dumps({
+                'merchantId': self.merchant.id,
+                'items': [{'productId': self.product.id, 'quantity': quantity}],
+                'addressId': self.address.id,
+            }),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {self.token}',
+        )
+        self.assertEqual(resp.json()['code'], '00000')
+        return OrderInfo.objects.latest('id')
+
+    def _age(self, order, minutes):
+        OrderInfo.objects.filter(pk=order.pk).update(
+            create_time=timezone.now() - timedelta(minutes=minutes),
+        )
+        order.refresh_from_db()
+        return order
+
+    def _run(self, minutes=None):
+        args = ['cancel_unpaid_orders']
+        if minutes is not None:
+            args.extend(['--minutes', str(minutes)])
+        call_command(*args)
+
+    @override_settings(UNPAID_ORDER_TIMEOUT_MINUTES=15)
+    def test_expired_unpaid_order_is_canceled_and_stock_restored(self):
+        order = self._age(self._create_order(), 20)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 47)
+
+        self._run()
+
+        order.refresh_from_db()
+        self.product.refresh_from_db()
+        self.assertEqual(order.status, OrderInfo.STATUS_CANCELED)
+        self.assertEqual(self.product.stock, 50)
+        log = OrderStatusLog.objects.get(order=order, to_status=OrderInfo.STATUS_CANCELED)
+        self.assertEqual(log.from_status, OrderInfo.STATUS_PENDING_PAY)
+        self.assertEqual(log.operator_role, 'system')
+
+    @override_settings(UNPAID_ORDER_TIMEOUT_MINUTES=15)
+    def test_recent_unpaid_order_is_kept(self):
+        order = self._age(self._create_order(), 5)
+        self._run()
+        order.refresh_from_db()
+        self.product.refresh_from_db()
+        self.assertEqual(order.status, OrderInfo.STATUS_PENDING_PAY)
+        self.assertEqual(self.product.stock, 47)
+
+    @override_settings(UNPAID_ORDER_TIMEOUT_MINUTES=15)
+    def test_paid_order_is_never_canceled(self):
+        order = self._create_order()
+        self.client.post(
+            f'/api/v1/orders/{order.id}/pay', HTTP_AUTHORIZATION=f'Bearer {self.token}',
+        )
+        order.refresh_from_db()
+        self.assertEqual(order.status, OrderInfo.STATUS_PAID)
+        self._age(order, 60 * 24)
+
+        self._run()
+
+        order.refresh_from_db()
+        self.product.refresh_from_db()
+        self.assertEqual(order.status, OrderInfo.STATUS_PAID)
+        self.assertEqual(self.product.stock, 47)
+
+    @override_settings(UNPAID_ORDER_TIMEOUT_MINUTES=15)
+    def test_command_is_idempotent(self):
+        order = self._age(self._create_order(), 20)
+        self._run()
+        self._run()
+
+        order.refresh_from_db()
+        self.product.refresh_from_db()
+        self.assertEqual(order.status, OrderInfo.STATUS_CANCELED)
+        self.assertEqual(self.product.stock, 50)
+        self.assertEqual(
+            OrderStatusLog.objects.filter(
+                order=order, to_status=OrderInfo.STATUS_CANCELED,
+            ).count(),
+            1,
+        )
+
+    @override_settings(UNPAID_ORDER_TIMEOUT_MINUTES=15)
+    def test_command_option_overrides_settings(self):
+        order = self._age(self._create_order(), 20)
+
+        self._run(minutes=30)
+        order.refresh_from_db()
+        self.assertEqual(order.status, OrderInfo.STATUS_PENDING_PAY)
+
+        self._run(minutes=10)
+        order.refresh_from_db()
+        self.assertEqual(order.status, OrderInfo.STATUS_CANCELED)
+
+
+class StoreOpenStateOrderTest(TestCase):
+    """商家打烊或不在营业时间时拒绝下单，且不产生订单、不扣库存。"""
+
+    def setUp(self):
+        self.user, self.info = make_customer('so_a', '顾客A', '13900000071')
+        self.token = make_token(self.user)
+
+        shop_user = User.objects.create_user(username='so_shop', password='pw123456')
+        self.merchant = MerchantInfo.objects.create(
+            auth_user=shop_user, name='测试商户', status=20,
+            is_open=True, open_time=time(9, 0), close_time=time(17, 0),
+        )
+        self.product = ProductInfo.objects.create(
+            merchant=self.merchant, name='测试菜品', price=10, stock=50, status=10,
+        )
+        self.address = UserAddress.objects.create(
+            user=self.info, receiver='顾客A', phone='13900000071', detail='示例路1号',
+        )
+
+    def _create(self):
+        return self.client.post(
+            '/api/v1/orders',
+            data=json.dumps({
+                'merchantId': self.merchant.id,
+                'items': [{'productId': self.product.id, 'quantity': 2}],
+                'addressId': self.address.id,
+            }),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {self.token}',
+        )
+
+    def _at(self, hour, minute=0):
+        return patch(
+            'merchant.services.timezone.now',
+            return_value=datetime(2026, 1, 1, hour, minute),
+        )
+
+    def _set_hours(self, open_time, close_time):
+        self.merchant.open_time = open_time
+        self.merchant.close_time = close_time
+        self.merchant.save(update_fields=['open_time', 'close_time'])
+
+    def test_closed_store_rejects_order(self):
+        self.merchant.is_open = False
+        self.merchant.save(update_fields=['is_open'])
+        with self._at(12):
+            resp = self._create()
+        self.assertNotEqual(resp.json()['code'], '00000')
+        self.assertIn('休息', resp.json()['info'])
+        self.assertEqual(OrderInfo.objects.count(), 0)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 50)
+
+    def test_outside_business_hours_rejects_order(self):
+        with self._at(18):
+            resp = self._create()
+        self.assertNotEqual(resp.json()['code'], '00000')
+        self.assertIn('营业时间', resp.json()['info'])
+        self.assertEqual(OrderInfo.objects.count(), 0)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 50)
+
+    def test_inside_business_hours_accepts_order(self):
+        with self._at(12):
+            resp = self._create()
+        self.assertEqual(resp.json()['code'], '00000')
+        self.assertEqual(OrderInfo.objects.count(), 1)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 48)
+
+    def test_opening_time_is_inclusive_and_closing_time_is_exclusive(self):
+        with self._at(9, 0):
+            self.assertEqual(self._create().json()['code'], '00000')
+        with self._at(17, 0):
+            resp = self._create()
+        self.assertNotEqual(resp.json()['code'], '00000')
+        self.assertIn('营业时间', resp.json()['info'])
+
+    def test_overnight_business_hours_are_supported(self):
+        self._set_hours(time(22, 0), time(2, 0))
+        with self._at(23, 0):
+            self.assertEqual(self._create().json()['code'], '00000')
+        with self._at(1, 30):
+            self.assertEqual(self._create().json()['code'], '00000')
+        with self._at(3, 0):
+            resp = self._create()
+        self.assertNotEqual(resp.json()['code'], '00000')
+        self.assertIn('营业时间', resp.json()['info'])
+        self.assertEqual(OrderInfo.objects.count(), 2)
+
+    def test_missing_business_hours_means_always_open(self):
+        self._set_hours(None, None)
+        with self._at(3):
+            resp = self._create()
+        self.assertEqual(resp.json()['code'], '00000')
+        self.assertEqual(OrderInfo.objects.count(), 1)
+
+
+class MerchantNewOrderNotificationTest(TestCase):
+    """支付成功后给商家生成新单站内信；未支付不通知，重复支付不重复通知。"""
+
+    def setUp(self):
+        self.user, self.info = make_customer('mn_a', '顾客A', '13900000121')
+        self.token = make_token(self.user)
+
+        shop_user = User.objects.create_user(username='mn_shop', password='pw123456')
+        self.merchant = MerchantInfo.objects.create(
+            auth_user=shop_user, name='测试商户', status=20,
+        )
+        self.product = ProductInfo.objects.create(
+            merchant=self.merchant, name='测试菜品', price=10, stock=50, status=10,
+        )
+        self.address = UserAddress.objects.create(
+            user=self.info, receiver='顾客A', phone='13900000121', detail='示例路1号',
+        )
+
+    def _create_order(self):
+        resp = self.client.post(
+            '/api/v1/orders',
+            data=json.dumps({
+                'merchantId': self.merchant.id,
+                'items': [{'productId': self.product.id, 'quantity': 2}],
+                'addressId': self.address.id,
+            }),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {self.token}',
+        )
+        self.assertEqual(resp.json()['code'], '00000')
+        return OrderInfo.objects.latest('id')
+
+    def _pay(self, order):
+        return self.client.post(
+            f'/api/v1/orders/{order.id}/pay', HTTP_AUTHORIZATION=f'Bearer {self.token}',
+        )
+
+    def test_paid_order_creates_notification_for_merchant(self):
+        order = self._create_order()
+        self.assertFalse(Notification.objects.filter(to_user=self.merchant.auth_user).exists())
+
+        resp = self._pay(order)
+        self.assertEqual(resp.json()['code'], '00000')
+
+        notification = Notification.objects.get(to_user=self.merchant.auth_user)
+        self.assertEqual(notification.type, Notification.TYPE_NEW_ORDER)
+        self.assertIn('新订单', notification.title)
+        self.assertIn(order.order_no, notification.content)
+        self.assertFalse(notification.is_read)
+
+    def test_unpaid_order_does_not_notify_merchant(self):
+        self._create_order()
+        self.assertEqual(
+            Notification.objects.filter(to_user=self.merchant.auth_user).count(), 0,
+        )
+
+    def test_repeated_payment_does_not_duplicate_notification(self):
+        order = self._create_order()
+        self._pay(order)
+        self._pay(order)
+        self.assertEqual(
+            Notification.objects.filter(to_user=self.merchant.auth_user).count(), 1,
+        )

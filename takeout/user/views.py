@@ -8,6 +8,7 @@ from common.response import fail, ok
 from common.utils import get_json
 
 from .models import UserAddress, UserInfo
+from .services import validate_address_payload
 
 # 演示环境固定万能验证码（README 已声明），正式接入短信后替换为随机码 + 有效期
 _CODE_STORE = {}
@@ -109,14 +110,17 @@ def address_create(request):
     if not info:
         return fail('用户不存在', status=401)
     data = get_json(request)
+    cleaned, error = validate_address_payload(data)
+    if error:
+        return fail(error)
     addr = UserAddress.objects.create(
         user=info,
-        receiver=data.get('name') or data.get('receiver') or '',
-        phone=data.get('phone') or '',
-        province=data.get('province') or '',
-        city=data.get('city') or '',
-        district=data.get('district') or '',
-        detail=data.get('detail') or '',
+        receiver=cleaned['receiver'],
+        phone=cleaned['phone'],
+        province=cleaned['province'],
+        city=cleaned['city'],
+        district=cleaned['district'],
+        detail=cleaned['detail'],
         is_default=bool(data.get('isDefault')),
     )
     return ok(_addr_to_dict(addr))

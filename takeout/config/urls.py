@@ -21,6 +21,7 @@ from common.dispatch import by_method
 from ai_service import views as ai_api
 from delivery import api_views as delivery_api
 from merchant import api_views as merchant_api
+from merchant import notification_views as merchant_notification
 from merchant import views as merchant_views
 from order import api_views as order_api
 from order import views as order_views
@@ -126,6 +127,8 @@ merchant_api_patterns = [
     path('merchant/info', merchant_api.update_info),
     path('merchant/status', merchant_api.update_status),
     path('merchant/avatar', merchant_api.upload_avatar),
+    path('notifications', merchant_notification.notification_list),
+    path('notifications/read', merchant_notification.notification_read),
 
     path('product/categories', product_api.category_list),
     path('product/category', product_api.category_create),

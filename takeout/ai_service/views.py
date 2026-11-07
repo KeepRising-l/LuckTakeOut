@@ -15,6 +15,7 @@ from django.views.decorators.http import require_http_methods
 from common.auth import api_login_required
 from common.response import fail, ok
 from common.utils import get_json
+from merchant.services import merchant_accepting_orders
 from order.models import OrderInfo, OrderItem, OrderStatusLog
 from payment.models import PaymentRecord
 from product.models import ProductInfo
@@ -111,6 +112,11 @@ def draft_confirm(request, pk):
         return fail('草稿不存在')
     if d.status != OrderDraft.STATUS_PENDING:
         return fail('草稿状态不允许确认')
+
+    # 草稿生成后商户可能已打烊或超出营业时间，确认时须按同一规则再拦截
+    accepting, message = merchant_accepting_orders(d.merchant)
+    if not accepting:
+        return fail(message)
 
     delivery_fee = settings.DELIVERY_FEE
 

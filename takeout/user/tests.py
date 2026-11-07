@@ -123,3 +123,73 @@ class AddressScopeTest(TestCase):
         )
         self.assertEqual(resp.status_code, 405)
         self.assertTrue(UserAddress.objects.filter(id=self.address.id).exists())
+
+
+class AddressValidationTest(TestCase):
+    """新增地址时的后端校验：必填、手机号格式、长度与首尾空白。"""
+
+    def setUp(self):
+        auth_user = User.objects.create_user(username='av_a', password='pw123456')
+        self.info = UserInfo.objects.create(auth_user=auth_user, nickname='顾客A', phone='13900000101')
+        self.token = make_token(auth_user)
+
+    def _create(self, **overrides):
+        payload = {
+            'name': '张三',
+            'phone': '13900000101',
+            'detail': '示例路1号',
+        }
+        payload.update(overrides)
+        return self.client.post(
+            '/api/v1/addresses', data=json.dumps(payload), content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {self.token}',
+        )
+
+    def test_blank_receiver_is_rejected(self):
+        for receiver in ('', '   '):
+            with self.subTest(receiver=receiver):
+                resp = self._create(name=receiver)
+                self.assertNotEqual(resp.json()['code'], '00000')
+                self.assertIn('收货人', resp.json()['info'])
+        self.assertEqual(UserAddress.objects.count(), 0)
+
+    def test_blank_detail_is_rejected(self):
+        resp = self._create(detail='   ')
+        self.assertNotEqual(resp.json()['code'], '00000')
+        self.assertIn('详细地址', resp.json()['info'])
+        self.assertEqual(UserAddress.objects.count(), 0)
+
+    def test_invalid_phone_is_rejected(self):
+        for phone in ('', '12345', '1390000010', '139000001011', '23900000101', '1390000010a'):
+            with self.subTest(phone=phone):
+                resp = self._create(phone=phone)
+                self.assertNotEqual(resp.json()['code'], '00000')
+                self.assertIn('手机号', resp.json()['info'])
+        self.assertEqual(UserAddress.objects.count(), 0)
+
+    def test_overlong_fields_are_rejected(self):
+        cases = (
+            ('name', '张' * 51, '收货人'),
+            ('detail', '路' * 201, '详细地址'),
+            ('province', '省' * 51, '省份'),
+            ('city', '市' * 51, '城市'),
+            ('district', '区' * 51, '区县'),
+        )
+        for field, value, label in cases:
+            with self.subTest(field=field):
+                resp = self._create(**{field: value})
+                self.assertNotEqual(resp.json()['code'], '00000')
+                self.assertIn(label, resp.json()['info'])
+        self.assertEqual(UserAddress.objects.count(), 0)
+
+    def test_valid_address_is_trimmed_and_saved(self):
+        resp = self._create(
+            name='  张三  ', phone=' 13900000101 ', detail='  示例路9号  ',
+            province=' 示例省 ', city=' 示例市 ', district=' 示例区 ',
+        )
+        self.assertEqual(resp.json()['code'], '00000')
+        addr = UserAddress.objects.get(user=self.info)
+        self.assertEqual(addr.receiver, '张三')
+        self.assertEqual(addr.phone, '13900000101')
+        self.assertEqual(addr.detail, '示例路9号')
+        self.assertEqual((addr.province, addr.city, addr.district), ('示例省', '示例市', '示例区'))

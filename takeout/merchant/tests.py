@@ -5,8 +5,10 @@ import json
 from django.contrib.auth.models import User
 from django.test import TestCase
 
+from common.auth import make_merchant_token
 from merchant.models import MerchantInfo
 from order.models import OrderInfo
+from platform_ops.models import Notification
 from review.models import Review
 from user.models import UserInfo
 
@@ -134,6 +136,7 @@ class MerchantOnboardingTest(TestCase):
             ('get', '/api/product/categories'),
             ('get', '/api/product/merchant'),
             ('get', '/api/order/merchant'),
+            ('get', '/api/notifications'),
             ('get', '/api/stats/overview'),
             ('put', '/api/merchant/info'),
         ]
@@ -156,3 +159,73 @@ class MerchantOnboardingTest(TestCase):
             '/api/product/categories', HTTP_AUTHORIZATION=f'Bearer {token}',
         )
         self.assertEqual(resp.json()['code'], '00000')
+
+
+class MerchantNotificationApiTest(TestCase):
+    """商家站内信接口：只返回本人通知，已读操作不能越权。"""
+
+    def setUp(self):
+        self.user_a = User.objects.create_user(username='nt_a', password='pw123456')
+        self.merchant_a = MerchantInfo.objects.create(
+            auth_user=self.user_a, name='商户A', status=20,
+        )
+        self.user_b = User.objects.create_user(username='nt_b', password='pw123456')
+        self.merchant_b = MerchantInfo.objects.create(
+            auth_user=self.user_b, name='商户B', status=20,
+        )
+        self.token_a = make_merchant_token(self.user_a)
+        self.token_b = make_merchant_token(self.user_b)
+
+        self.n1 = Notification.objects.create(
+            to_user=self.user_a, title='新订单待接单', content='订单 A1',
+            type=Notification.TYPE_NEW_ORDER,
+        )
+        self.n2 = Notification.objects.create(
+            to_user=self.user_a, title='新订单待接单', content='订单 A2',
+            type=Notification.TYPE_NEW_ORDER,
+        )
+        self.other = Notification.objects.create(
+            to_user=self.user_b, title='新订单待接单', content='订单 B1',
+            type=Notification.TYPE_NEW_ORDER,
+        )
+
+    def _list(self, token):
+        return self.client.get('/api/notifications', HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def _read(self, token, payload):
+        return self.client.post(
+            '/api/notifications/read', data=json.dumps(payload),
+            content_type='application/json', HTTP_AUTHORIZATION=f'Bearer {token}',
+        )
+
+    def test_list_returns_only_own_notifications(self):
+        body = self._list(self.token_a).json()
+        self.assertEqual(body['code'], '00000')
+        ids = [n['id'] for n in body['data']['items']]
+        self.assertEqual(ids, [self.n2.id, self.n1.id])
+        self.assertEqual(body['data']['unread'], 2)
+
+    def test_mark_read_is_scoped_to_own_notifications(self):
+        body = self._read(self.token_a, {'ids': [self.n1.id, self.other.id]}).json()
+        self.assertEqual(body['code'], '00000')
+        self.assertEqual(body['data']['unread'], 1)
+
+        self.n1.refresh_from_db()
+        self.other.refresh_from_db()
+        self.assertTrue(self.n1.is_read)
+        self.assertFalse(self.other.is_read)
+
+    def test_mark_all_read(self):
+        body = self._read(self.token_a, {'all': True}).json()
+        self.assertEqual(body['code'], '00000')
+        self.assertEqual(body['data']['unread'], 0)
+        self.assertEqual(
+            Notification.objects.filter(to_user=self.user_a, is_read=False).count(), 0,
+        )
+        self.assertEqual(
+            Notification.objects.filter(to_user=self.user_b, is_read=False).count(), 1,
+        )
+
+    def test_notifications_require_login(self):
+        resp = self.client.get('/api/notifications')
+        self.assertEqual(resp.status_code, 401)

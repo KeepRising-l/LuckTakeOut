@@ -29,8 +29,13 @@ class Notification(BaseModel):
 
     TYPE_URGE = 10
     TYPE_SYSTEM = 20
+    TYPE_NEW_ORDER = 30
 
-    TYPE_CHOICES = ((TYPE_URGE, '催单'), (TYPE_SYSTEM, '系统'))
+    TYPE_CHOICES = (
+        (TYPE_URGE, '催单'),
+        (TYPE_SYSTEM, '系统'),
+        (TYPE_NEW_ORDER, '新订单'),
+    )
 
     to_user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,

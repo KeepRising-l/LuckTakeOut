@@ -146,3 +146,6 @@ LLM_MODEL = os.environ.get("LLM_MODEL", "deepseek-v4.1-flash")
 
 # 平台统一配送费（本期为固定值，下单时快照入订单）
 DELIVERY_FEE = Decimal(os.environ.get('DELIVERY_FEE', '2.00'))
+
+# 待支付订单超时时间（分钟）：由 cancel_unpaid_orders 命令读取并自动取消
+UNPAID_ORDER_TIMEOUT_MINUTES = int(os.environ.get('UNPAID_ORDER_TIMEOUT_MINUTES', '15'))

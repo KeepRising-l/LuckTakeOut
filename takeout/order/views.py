@@ -12,12 +12,13 @@ from common.auth import api_login_required
 from common.response import fail, ok
 from common.utils import get_json
 from merchant.models import MerchantInfo
+from merchant.services import merchant_accepting_orders
 from payment.models import PaymentRecord
 from product.models import ProductInfo
 from user.models import UserAddress, UserInfo
 
 from .models import OrderInfo, OrderItem, OrderStatusLog
-from .services import apply_refund_for_order, restore_stock
+from .services import apply_refund_for_order, notify_merchant_new_order, restore_stock
 from .state import change_status
 
 
@@ -74,6 +75,11 @@ def create_order(request):
     merchant = MerchantInfo.objects.filter(id=merchant_id, status=20).first() if merchant_id else None
     if not merchant:
         return fail('商家不存在或未通过审核')
+
+    # 打烊或不在营业时间时不接单（与 AI 草稿确认共用同一判断）
+    accepting, message = merchant_accepting_orders(merchant)
+    if not accepting:
+        return fail(message)
 
     items = data.get('items') or []
     if not items:
@@ -190,13 +196,14 @@ def order_pay(request, pk):
     user_info = UserInfo.objects.filter(auth_user=request.user).first()
     if not user_info:
         return fail('用户不存在', status=401)
-    o = OrderInfo.objects.filter(id=pk, user=user_info).first()
-    if not o:
-        return fail('订单不存在')
-    if o.status != OrderInfo.STATUS_PENDING_PAY:
-        return fail('当前订单状态不允许支付')
     now = timezone.now()
+    # 行锁内二次校验，避免与「超时自动取消」并发时把已取消订单改为已支付
     with transaction.atomic():
+        o = OrderInfo.objects.select_for_update().filter(id=pk, user=user_info).first()
+        if not o:
+            return fail('订单不存在')
+        if o.status != OrderInfo.STATUS_PENDING_PAY:
+            return fail('当前订单状态不允许支付')
         changed, message = change_status(
             o, OrderInfo.STATUS_PAID, operator_role='customer',
             operator_id=user_info.id, pay_time=now,
@@ -204,6 +211,7 @@ def order_pay(request, pk):
         if not changed:
             return fail(message)
         PaymentRecord.objects.filter(order=o).update(status=20, pay_time=now)
+        notify_merchant_new_order(o)
     return ok(order_to_dict(o))
 
 
@@ -214,12 +222,13 @@ def order_cancel(request, pk):
     user_info = UserInfo.objects.filter(auth_user=request.user).first()
     if not user_info:
         return fail('用户不存在', status=401)
-    o = OrderInfo.objects.filter(id=pk, user=user_info).first()
-    if not o:
-        return fail('订单不存在')
-    if o.status not in (OrderInfo.STATUS_PENDING_PAY, OrderInfo.STATUS_PAID):
-        return fail('当前订单状态不允许取消')
+    # 行锁内二次校验，避免与自动取消并发导致重复回补库存
     with transaction.atomic():
+        o = OrderInfo.objects.select_for_update().filter(id=pk, user=user_info).first()
+        if not o:
+            return fail('订单不存在')
+        if o.status not in (OrderInfo.STATUS_PENDING_PAY, OrderInfo.STATUS_PAID):
+            return fail('当前订单状态不允许取消')
         changed, message = change_status(
             o, OrderInfo.STATUS_CANCELED, operator_role='customer', operator_id=user_info.id,
         )

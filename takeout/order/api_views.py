@@ -123,10 +123,11 @@ def order_update_status(request, pk):
 @require_http_methods(['PUT', 'POST'])
 @merchant_approved_required
 def order_cancel(request, pk):
-    o = OrderInfo.objects.filter(id=pk, merchant=request.merchant).first()
-    if not o:
-        return fail_m('订单不存在')
+    # 行锁内二次校验，避免与自动取消并发导致重复回补库存
     with transaction.atomic():
+        o = OrderInfo.objects.select_for_update().filter(id=pk, merchant=request.merchant).first()
+        if not o:
+            return fail_m('订单不存在')
         changed, message = change_status(
             o, OrderInfo.STATUS_CANCELED, operator_role='merchant', operator_id=request.merchant.id,
         )

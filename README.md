@@ -54,9 +54,14 @@ cd web && npm install && web\run-dev.bat
 
 ```bat
 cd takeout
-.venv\Scripts\python.exe scripts\fetch_food_images.py   :: 抓取自由许可菜品图（可选，已入库可跳过）
-.venv\Scripts\python.exe manage.py seed_shops           :: 生成 11 家商户与 40 道菜
+.venv\Scripts\python.exe manage.py migrate               :: 建表
+.venv\Scripts\python.exe manage.py seed_demo             :: 基础账号：骑手/顾客/运营 + 2 家商户
+.venv\Scripts\python.exe scripts\fetch_food_images.py    :: 抓取自由许可菜品图（可选，已入库可跳过）
+.venv\Scripts\python.exe manage.py seed_shops            :: 11 家多品类商户与 41 道菜（幂等）
 ```
+
+> 想连历史订单、AI 会话一起演示，按 `thesis-docs/08-部署与数据库说明.md` 用
+> `thesis-docs/db/import_snapshot.py` 恢复快照，恢复后再执行一次 `migrate`。
 
 图片来自 Wikimedia Commons / TheMealDB 的 CC 或公有领域素材，来源与许可清单见
 `takeout/media/products/sources.json`。
@@ -70,7 +75,7 @@ cd takeout
 - **商家上传**：菜品管理 → 新增/编辑菜品 → 图片 → 选择本地图片即上传（≤5MB，jpg/png/webp/gif）
 
 ## 技术栈
-- 后端：Django + SQLite（可切 MySQL），ResultAPI `{code, info, data}`，三类端独立盐值签名 token
+- 后端：Django + SQLite（可切 MySQL），ResultAPI `{code, info, data}`，四类角色独立盐值签名 token
 - 前端：Vue 3 + Vite + TypeScript + Pinia + Vue Router；移动端 Vant 4 / 商户端 Element Plus + ECharts
 - 结构：`web/` npm workspaces monorepo（`packages/shared` 公共请求层 + `apps/customer|merchant|rider`）
 - 部署：三端构建产物由 Django 同源托管（`/` 顾客端、`/merchant/`、`/rider/`）；旧版静态页已移除
@@ -78,6 +83,12 @@ cd takeout
 
 ## 演示链路
 顾客点菜下单 → 模拟支付 → 商户接单 → 骑手抢单配送 → 顾客评价 → 退款申请/商户审核（模拟到账）→（AI 客服对话式下单）
+
+## 运行时约束
+- **营业拦截**：商户打烊（`is_open=false`）或当前不在 `open_time–close_time` 内时拒绝下单；未配置营业时间视为全天营业，跨天时段（如 22:00–02:00）按跨零点处理。
+- **地址校验**：收货人、详细地址必填，联系电话须为 11 位大陆手机号，字段去除首尾空白并限制长度。
+- **超时自动取消**：`manage.py cancel_unpaid_orders` 取消创建超过 15 分钟的未支付订单并回补库存（幂等）。默认超时可用环境变量 `UNPAID_ORDER_TIMEOUT_MINUTES` 调整；**需由计划任务周期执行**，配置见 `thesis-docs/08-部署与数据库说明.md` 3.6。
+- **商家新单通知**：支付成功时为商户写入站内信；商户端顶栏每 15 秒轮询，显示未读角标并弹出提醒。
 
 ## AI 个性化点餐
 
@@ -97,6 +108,7 @@ validate_draft / create_draft / get_order_status / urge_order / submit_review）
 
 | 文档 | 位置 |
 | --- | --- |
+| 项目整理与文档索引（交接先读） | `项目整理.md` |
 | 任务书（学院格式，含 Word 版） | `thesis-docs/00-任务书.md` / `.docx` |
 | 需求分析（功能需求权威源） | `thesis-docs/02-需求分析.md` |
 | 系统设计 | `thesis-docs/03-系统设计.md` |
@@ -106,4 +118,6 @@ validate_draft / create_draft / get_order_status / urge_order / submit_review）
 | 项目使用文档（四端操作 + 演示脚本） | `thesis-docs/07-项目使用文档.md` |
 | 部署与数据库说明（换机运行 / 数据库脚本） | `thesis-docs/08-部署与数据库说明.md` |
 | 数据库快照与恢复脚本 | `thesis-docs/db/` |
-| 工程规格（51 条可验收要求） | `openspec/specs/` |
+| 工程规格（53 条可验收要求） | `openspec/specs/` |
+
+> 编号 `01` 为开题报告，按学院要求单独提交，不放入仓库（见提交 `9cc633f`）。
